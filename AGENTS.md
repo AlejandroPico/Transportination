@@ -20,3 +20,7 @@ Cada avión, barco, tren y satélite conserva su símbolo individual en el mapa,
 - Líneas y estaciones dentro del filtro Trenes: activables y con reguladores de resalte independientes, al máximo por defecto. El vehículo seleccionado muestra el recorrido disponible y las estaciones anteriores y siguientes.
 - Solo servicios gratuitos; no contratar ni activar facturación. Nunca publicar credenciales o claves AIS.
 - La sesión autoriza publicar versiones en main mediante Actions. Comprobar escritorio/móvil y el despliegue.
+- Meteorología: distinguir radar observado, imágenes satelitales fechadas y previsiones. Mostrar resolución de la malla y cobertura; no presentar interpolación como detalle observado ni como precisión Windy.
+- Aviación: conservar estelas observadas, coloreadas por altitud (blanco en tierra, azules bajos, arcoíris hasta violeta alto). Identificar los tramos entre instantáneas espaciadas como discontinuos. No confundir indicativo IATA con número comercial de vuelo, ni propietario registrado con operador.
+- Modelos de aeronaves: elegir solo a partir del tipo publicado; marcar las mallas esquemáticas como tales. Sin matrícula, fecha de fabricación o tipo, no inventarlos. Centrar y seguir movimiento son acciones independientes.
+- Créditos: reunir la información en un botón pequeño circular con i; mantener en el mapa las atribuciones breves que exijan las fuentes. Coordenadas y hora flotantes, sin franja inferior opaca. Etiquetas cartográficas regulables por fondo cuando la fuente permita separarlas.

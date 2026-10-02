@@ -1,6 +1,6 @@
 import { normalizeAircraft, normalizeTrains, normalizeOpenSky } from '../src/model.js';
 import { finnishRail, northAmericanRail } from '../src/rail.js';
-export const USER_AGENT = 'Transportination/0.3 (+https://github.com/AlejandroPico/Transportination)';
+export const USER_AGENT = 'Transportination/0.4 (+https://github.com/AlejandroPico/Transportination)';
 export async function fetchJson(url) {
   const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' }, signal: AbortSignal.timeout(18000) });
   if (!response.ok) throw new Error(`La fuente respondió HTTP ${response.status}`);

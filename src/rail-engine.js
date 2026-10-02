@@ -1,4 +1,4 @@
-import { estimateTrain, prepareShape } from './motion.js';
+import { estimateTrain, prepareShape } from './motion.js?v=0.4';
 export class RailEngine {
   constructor() { this.journeys = []; this.observations = new Map(); this.network = { stations: [], shapes: {} }; this.geometries = new Map(); }
   setNetwork(network) { this.network = network; }

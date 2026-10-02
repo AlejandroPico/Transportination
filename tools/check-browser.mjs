@@ -21,11 +21,13 @@ try {
   assert.equal(await page.locator('.brand,.world-caption,.swatch,#air-total,#rail-total').count(), 0);
   assert.equal(await page.locator('.toolbar button').last().getAttribute('id'), 'zoom');
   assert.equal((await page.locator('.toolbar').textContent()).trim(), '100%');
-  await capture(page, 'v03-world');
+  await capture(page, 'v04-world');
   console.log('World symbols and toolbar verified.');
   await page.locator('[data-panel="layers"]').click();
   assert.equal(await page.locator('[data-base]').count(), 8);
-  assert.equal(await page.locator('#layers input').count(), 0);
+  assert.equal(await page.locator('#layers input').count(), 1);
+  await page.locator('#base-labels').check();
+  await page.locator('#base-labels').uncheck();
   await page.locator('[data-base="bathymetry"]').click();
   await page.waitForTimeout(1500);
   assert.equal(await page.locator('[data-base="bathymetry"]').getAttribute('aria-pressed'), 'true');
@@ -35,9 +37,9 @@ try {
   await page.locator('#about-button').click();
   const about = await page.locator('#about').boundingBox();
   assert.ok(Math.abs(about.x + about.width / 2 - 720) < 2);
-  assert.ok((await page.locator('#about').textContent()).includes('Versión 0.3.0'));
+  assert.ok((await page.locator('#about').textContent()).includes('Versión 0.4.0'));
   assert.equal(await page.locator('#about a[href$="/Portfolio/"]').count(), 1);
-  await capture(page, 'v03-about');
+  await capture(page, 'v04-about');
   await page.locator('#about-close').click();
   console.log('Layers and About verified.');
   await page.locator('#legend-toggle').click(); assert.equal(await page.locator('#legend').isVisible(), true);
@@ -63,7 +65,7 @@ try {
   assert.equal(await page.locator('#coordinates').textContent(), coords);
   assert.equal(await page.locator('#zoom').textContent(), zoom);
   console.log('Local view preserved in 2D/3D.');
-  await capture(page, 'v03-flat');
+  await capture(page, 'v04-flat');
   await page.locator('#dimension').click(); await page.waitForFunction(() => !document.getElementById('dimension').disabled);
   assert.equal(await page.locator('#coordinates').textContent(), coords);
   assert.equal(await page.locator('#zoom').textContent(), zoom);
@@ -76,16 +78,16 @@ try {
   await page.waitForTimeout(4500);
   const after = await page.locator('#detail .vehicle-data').textContent();
   assert.notEqual(after, before, 'Orbital coordinates must move with real time');
-  await capture(page, 'v03-satellite');
+  await capture(page, 'v04-satellite');
   await page.locator('#detail-close').click();
   await page.locator('#zoom').click(); await page.waitForTimeout(1800);
   await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(1000);
   const toolbar = await page.locator('.toolbar').boundingBox();
   assert.ok(toolbar.x >= 0 && toolbar.x + toolbar.width <= 390);
-  await capture(page, 'v03-mobile');
+  await capture(page, 'v04-mobile');
   await page.locator('[data-panel="filters"]').click();
   const filters = await page.locator('#filters').boundingBox(); assert.ok(filters.x >= 0 && filters.x + filters.width <= 390);
-  await capture(page, 'v03-mobile-filters');
+  await capture(page, 'v04-mobile-filters');
   assert.deepEqual(errors, []);
   console.log('Browser QA passed: worldwide view, icon-only toolbar, vertical layers, centered About, colors, legend, world search, preserved 2D/3D view, moving SGP4 satellites and mobile. No page errors.');
 } finally { await browser.close(); }

@@ -10,3 +10,8 @@ data/rail-cache/
 data/rail-network.json
 data/rail-journeys.json
 vendor/
+
+data/aviation.json
+data/airspace.json
+data/weather.json
+data/air-tracks.json

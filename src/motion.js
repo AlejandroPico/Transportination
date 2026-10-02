@@ -61,11 +61,11 @@ export function observationTween(previous, next, now = Date.now()) {
   if (!previous || !previous.observedAt || !next.observedAt || next.observedAt <= previous.observedAt || now - next.observedAt > 60000 || next.observedAt - previous.observedAt > 60000) return null;
   // Reject discontinuities, including identity changes and bad receiver coordinates.
   if (distance(previous, next) > (next.kind === 'air' ? 60000 : 12000)) return null;
-  return { from: previous, to: next, startedAt: now, duration: Math.min(5000, next.observedAt - previous.observedAt) };
+  return { from: previous, to: next, startedAt: now, duration: Math.min(10000, next.observedAt - previous.observedAt) };
 }
 export function altitudeColor(metres) {
   if (!Number.isFinite(metres)) return '#a9b4bd';
-  const stops = [[0, [104, 239, 178]], [3000, [247, 224, 108]], [6000, [255, 157, 78]], [9000, [236, 111, 154]], [12000, [167, 130, 255]]];
+  const stops = [[0, [255,255,255]], [300, [97,179,255]], [1500, [47,118,235]], [3500,[44,218,226]], [6000,[97,221,103]], [8500,[252,222,77]], [10500,[247,145,55]], [12500,[232,66,95]], [14000,[173,94,236]]];
   let i = 0; while (i < stops.length - 2 && metres > stops[i + 1][0]) i++;
   const t = Math.max(0, Math.min(1, (metres - stops[i][0]) / (stops[i + 1][0] - stops[i][0])));
   return '#' + stops[i][1].map((v, k) => Math.round(v + (stops[i + 1][1][k] - v) * t).toString(16).padStart(2, '0')).join('');

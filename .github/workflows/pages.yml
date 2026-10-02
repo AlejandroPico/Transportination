@@ -54,7 +54,20 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: data/rail-cache
-          key: rail-v3-${{ env.RAIL_DAY }}
+          key: rail-v4-${{ env.RAIL_DAY }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            data/aviation.json
+            data/airspace.json
+          key: aviation-v4-${{ env.RAIL_DAY }}
+      - name: Weather cache period
+        run: echo "WEATHER_PERIOD=$(( $(date +%s) / 21600 ))" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: data/weather.json
+          key: weather-v4-${{ env.WEATHER_PERIOD }}
+          restore-keys: weather-v4-
       - name: Fetch public transport snapshots
         run: node tools/collect.mjs
         env:

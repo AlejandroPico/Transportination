@@ -29,7 +29,7 @@ export function createServer() {
       if (origin && allowed.includes(origin)) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); }
       if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS' }); return res.end(); }
       if (req.method !== 'GET') return json(res, 405, { error: 'Método no permitido' });
-      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.3.0', regionRefreshMs: 5000, worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, ships: ais.packet().status });
+      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.4.0', regionRefreshMs: 5000, worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, ships: ais.packet().status });
       if (url.pathname === '/api/aircraft/world') return json(res, 200, await cached('air-world', process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, globalAircraft));
       if (url.pathname === '/api/aircraft') {
         const lat = Number(url.searchParams.get('lat')), lon = Number(url.searchParams.get('lon'));
@@ -59,7 +59,7 @@ export function createServer() {
       const target = path.resolve(root, '.' + (decoded === '/' ? '/index.html' : decoded));
       const publicPath = decoded === '/' || decoded === '/index.html' || /^\/(assets|src|data|vendor)\//.test(decoded);
       if (!publicPath || !target.startsWith(root) || decoded.includes('\\') || decoded.split('/').some(p => p.startsWith('.'))) return json(res, 403, { error: 'Acceso no permitido' });
-      const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.md': 'text/plain' };
+      const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.gltf': 'model/gltf+json', '.svg': 'image/svg+xml', '.md': 'text/plain' };
       const body = await readFile(target);
       res.writeHead(200, { 'Content-Type': `${types[path.extname(target)] || 'application/octet-stream'}; charset=utf-8`, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' });
       res.end(body);

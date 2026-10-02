@@ -2,14 +2,21 @@
 
 Un atlas para explorar el movimiento de la Tierra: aviación, ferrocarril, navegación y órbitas, con mapas combinables y vistas 2D/3D.
 
-## Versión 0.3.0 · 2 de octubre de 2026
+## Versión 0.4.0 · 3 de octubre de 2026
 
-- Movimiento ferroviario calculado cada segundo a partir de horarios, respetando las paradas. Renfe aporta retrasos y cancelaciones cuando están publicados; SNCF aporta horarios, sin GPS ni retrasos franceses conectados en esta versión. Cada estimación está identificada y se puede desactivar.
-- Finlandia: posiciones Fintraffic/Digitraffic y horarios, con consultas directas de posición cada diez segundos al observar la zona. Estados Unidos y Canadá: Amtrak, VIA Rail y Brightline mediante Amtraker, con consultas cada treinta segundos al observar la zona. Los datos conservan la fecha original del operador.
-- Selección de tren: origen, destino, horas locales, estaciones anteriores y siguientes en mapa y ficha. El trazado GTFS de Cercanías se usa cuando se puede relacionar con las paradas; sin geometría válida, la línea y la ubicación estimada son aproximaciones entre estaciones y se indican como tales.
-- Interruptores y reguladores independientes para líneas y estaciones dentro de Trenes, al máximo por defecto. Estaciones de los operadores conectados y consulta local OpenStreetMap al acercarse en cualquier país, según la cartografía disponible.
-- Estelas aéreas de observaciones nuevas recibidas durante la sesión, con colores por altitud; origen/destino de adsbdb cuando se conoce el indicativo. La unión entre aeropuertos es orientativa, no un plan de vuelo exacto. Órbita completa calculada del satélite seleccionado.
-- Seguir el vehículo y regular el resalte del recorrido. Interpolación entre posiciones recientes; las instantáneas aéreas antiguas permanecen fijas.
+- Aeropuertos, radioayudas y pistas del catálogo mundial OurAirports, con símbolos individuales, colores e intensidad. Límites FIR/ARTCC/ACC y cartas IFR baja/alta de la FAA: **cobertura parcial**, principalmente estadounidense; no representan sectores de todas las torres ni cartas mundiales.
+- Historial aéreo observado de dos horas entre publicaciones. Blanco en tierra, azules bajos y arcoíris hasta violeta alto. **Las muestras espaciadas se unen con segmentos discontinuos**, sin reconstruir maniobras ni acreditar un recorrido continuo. La ficha añade indicativo, matrícula, modelo, fabricante, indicativo IATA, FL, velocidad vertical y squawk cuando están publicados. Sin fecha de fabricación no se inventa la antigüedad.
+- Ocho mallas 3D originales esquemáticas: familias 737, A320, 747, A380, 777, A350, turbohélice y monomotor. No son réplicas exactas ni tienen libreas. Los tipos desconocidos conservan su símbolo. Centrar y seguir movimiento son controles distintos.
+- Recepción directa opcional AvioADSB, sin cuenta: máximo 100 NM, consulta cada 10 segundos, **100 consultas/día por red** y red de receptores pequeña. Interpolación entre observaciones recientes; parada ante cuota agotada o tres respuestas vacías. No permite un radar mundial continuo. El servidor ADSB.lol preparado sigue siendo la vía para consultas regionales frecuentes sin esa cuota.
+- EUMETSAT: mosaico infrarrojo mundial de tres horas, Meteosat de quince minutos para Europa/África o el Índico, con fecha visible. Sustituye la pesada consulta de capacidades NASA y el montaje parcial anterior. RainViewer muestra el último radar disponible, con cobertura y resolución propias de la fuente.
+- Temperatura, precipitación y viento a 10 m con Open-Meteo: colores, dirección, intensidad y selección horaria. **Previsiones interpoladas sobre una malla de 5° entre 80° S y 80° N**, no observaciones ni resolución de Windy. Recogida cada seis horas: 2.376 localizaciones por colección, dentro de la cuota diaria gratuita. Celdas ausentes transparentes.
+- Noruega: posiciones Entur. Austria: horarios ÖBB de 2026. Irlanda: tiempos previstos de Irish Rail, derivados de señalización y horarios, con cobertura desigual. Estimaciones identificadas y estaciones/recorridos. La geometría austríaca de gran tamaño queda pendiente; allí se usan tramos aproximados entre estaciones.
+- Etiquetas activables por fondo con preferencias independientes. Carreteras de OpenStreetMap tiene etiquetas integradas en el raster; no permite ocultarlas por separado.
+- Mapa de pantalla completa, coordenadas y hora flotantes, i circundada y créditos en el diálogo nativo. Se mantiene atribución breve para fuentes que la exigen. Amtraker muestra su crédito al inicio y permite recogerlo tras la primera interacción.
+
+### Base ferroviaria
+
+Movimiento de horarios cada segundo, paradas y retrasos Renfe publicados. España y Francia aportan calendarios GTFS; Finlandia aporta Fintraffic/Digitraffic y Norteamérica Amtraker. Cada dato mantiene su fecha y fuente. Las posiciones antiguas no se animan como recepción en directo.
 
 ### Base de la versión anterior
 
@@ -27,11 +34,11 @@ La aviación pasa de una consulta regional española a la cobertura mundial publ
 
 ## Cobertura y actualización
 
-**Mundial describe el alcance del visor y de la consulta aérea, no una garantía de observar todos los vehículos del planeta.** OpenSky y AIS dependen de recepción. El ferrocarril conectado incluye España, Francia, Finlandia, Estados Unidos y Canadá, con cobertura parcial por operador. Otros países y metros necesitan adaptadores propios; algunos exigen registro o claves. Esta versión no conecta aún Asia, África ni Oceanía.
+**Mundial describe el alcance del visor y de la consulta aérea, no una garantía de observar todos los vehículos del planeta.** OpenSky y AIS dependen de recepción. El ferrocarril conectado incluye España, Francia, Austria, Irlanda, Noruega, Finlandia, Estados Unidos y Canadá, con cobertura parcial por operador. Otros países y metros necesitan adaptadores propios; algunos exigen registro o claves. Esta versión no conecta aún Asia, África ni Oceanía.
 
 GitHub Pages aloja archivos estáticos. Actions actualiza la instantánea aérea mundial y ferroviaria aproximadamente cada quince minutos; el navegador busca un nuevo archivo cada treinta segundos. Actions puede retrasarse. Ninguna observación se rejuvenece al descargarla de nuevo. Las estimaciones ferroviarias se calculan aparte y están identificadas; el usuario puede desactivarlas. Los horarios nacionales se descargan una vez al día y se interpretan con sus calendarios y zonas horarias, incluidos servicios nocturnos.
 
-El servidor opcional consulta ADSB.lol en la zona observada cada cinco segundos, Renfe cada veinte segundos y AIS cada cinco segundos. Interpola entre muestras aéreas recientes, sin extrapolar instantáneas viejas. OpenSky mundial se comparte en caché quince minutos sin cuenta, o noventa segundos con credenciales. El complemento regional conserva el resto del mundo. Sin servidor, las fuentes aéreas no admiten consultas del navegador desde GitHub Pages; no se promete movimiento aéreo segundo a segundo ni precisión de rodaje comparable a Flightradar24.
+El servidor opcional consulta ADSB.lol en la zona observada cada cinco segundos, Renfe cada veinte segundos y AIS cada cinco segundos. Interpola entre muestras aéreas recientes, sin extrapolar instantáneas viejas. OpenSky mundial se comparte en caché quince minutos sin cuenta, o noventa segundos con credenciales. El complemento regional conserva el resto del mundo. Sin servidor, OpenSky y ADSB.lol no admiten consultas del navegador desde GitHub Pages; AvioADSB permite el complemento limitado descrito arriba; no se promete movimiento aéreo segundo a segundo ni precisión de rodaje comparable a Flightradar24.
 
 CelesTrak se descarga como máximo cada dos horas y se reutiliza para calcular el movimiento orbital en el navegador. La época de los elementos aparece en cada ficha. Si una fuente falla, se conserva el dato anterior con su fecha y error.
 
@@ -98,3 +105,14 @@ Sin servicios de pago. Las estimaciones ferroviarias y órbitas calculadas está
 `src/app.js`: visor, interfaz y símbolos individuales. `catalog.js`: categorías/iconos. `model.js`: validación, unidades, fechas y mezcla mundial/regional. `layers.js`: cartografía. `orbit-worker.js`: SGP4. `tools/providers.mjs`: fuentes. `ais.mjs`: mensajes marítimos. `server.mjs`: servidor protegido y caché. `collect.mjs`: instantáneas. `vendor.mjs`: publicación de satellite.js. `test/`: validación de datos y servidor.
 
 Referencias de producto: [RadarDeTrenes](https://radardetrenes.com/), [OpenRailwayMap](https://www.openrailwaymap.org/), [Windy](https://www.windy.com/), [Positrén](https://positren.nebulacodex.com/), [Flexport Atlas](https://atlas.flexport.com/), [LocalizaTodo](https://www.localizatodo.com/html5/) y [SatelliteMap](https://satellitemap.space/).
+
+## Referencias y pendientes
+
+- [AvioADSB: límites y cobertura](https://avioadsb.org/docs/api): cien consultas diarias anónimas. No ofrece cobertura comparable a Flightradar24; OpenSky tampoco garantiza todos los vuelos, especialmente sobre océanos y zonas con pocos receptores. No se recogen datos de servicios de pago ni se eluden restricciones.
+- [OurAirports](https://ourairports.com/data/), dominio público; [FAA](https://www.faa.gov/data/aero_data), datos y cartas de uso público. Los límites FIR mundiales actualizados de ICAO requieren una suscripción; quedan por investigar otros conjuntos abiertos con licencia y cobertura adecuadas.
+- [Entur](https://developer.entur.org/pages-real-time-vehicle/), NLOD; [ÖBB-Personenverkehr AG](https://data.oebb.at/de/datensaetze~soll-fahrplan-gtfs~), CC BY 4.0, horarios transformados en posiciones estimadas; [Irish Rail](https://api.irishrail.ie/realtime/), estimaciones de señalización/horarios, no GPS.
+- [EUMETView](https://user.eumetsat.int/data-access/eumetview/resources), WMS esencial sin registro; [Open-Meteo](https://open-meteo.com/en/docs), CC BY 4.0, servicio gratuito no comercial. La visualización transforma e interpola los datos; no implica respaldo de las fuentes al proyecto.
+- Alemania, Suecia, Dinamarca, Italia, Reino Unido, Polonia, Bálticos y otros países siguen pendientes de conectores. Su ausencia no implica que no publiquen datos. Algunas fuentes exigen claves gratuitas; otras ofrecen horarios pero no posiciones. No existe una API ferroviaria gratuita universal.
+- Barcos mundiales: falta la clave gratuita AIS Stream y el servidor. El radar aéreo mundial continuo y la precisión de rodaje siguen pendientes de fuentes y servidor; esta versión no los resuelve.
+
+Comprobaciones: adaptadores, unidades, calendarios, geometrías, interpolación y privacidad; meteorología polar/dateline; escritorio y móvil; capas, créditos, modelos y proyecciones. Los datos generados están fuera de Git y se publican desde Actions.

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: transportination-data
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/status
+    envVars:
+      - key: AISSTREAM_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://alejandropico.github.io

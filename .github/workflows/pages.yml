@@ -16,8 +16,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: corepack enable && corepack prepare pnpm@10.17.1 --activate
+      - run: pnpm install --frozen-lockfile
       - run: node --test
       - run: node --check src/app.js
+      - run: node --check src/orbit-worker.js
   publish:
     if: github.event_name != 'pull_request'
     needs: check
@@ -36,14 +39,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: corepack enable && corepack prepare pnpm@10.17.1 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: node tools/vendor.mjs
+      - name: Orbital cache period
+        run: echo "ORBIT_PERIOD=$(( $(date +%s) / 7200 ))" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: data/satellites.json
+          key: orbital-v2-${{ env.ORBIT_PERIOD }}
+          restore-keys: orbital-v2-
       - name: Fetch public transport snapshots
         run: node tools/collect.mjs
+        env:
+          LIVE_API_URL: ${{ vars.LIVE_API_URL }}
+          OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID }}
+          OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET }}
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
       - name: Assemble public files
         run: |
           mkdir -p _site/data
           cp index.html _site/
-          cp -r assets src _site/
-          cp data/feed.json _site/data/
+          cp -r assets src vendor _site/
+          cp data/*.json _site/data/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

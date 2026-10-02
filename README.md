@@ -1,73 +1,85 @@
 # Transportination
 
-Tierra, mar y aire en un mismo mundo. Un atlas abierto de transportes con globo 3D, mapa plano y capas combinables.
+Un atlas para explorar el movimiento de la Tierra: aviación, ferrocarril, navegación y órbitas, con mapas combinables y vistas 2D/3D.
 
-## Versión 0.1 · 2 de octubre de 2026
+## Versión 0.2.0 · 2 de octubre de 2026
 
-- Globo CesiumJS con transición animada a Mercator 2D, conservando centro, escala aproximada, filtros y selección sin recargar.
-- Menú superior derecho, esquinas rectas, zoom numérico que restablece la vista, búsqueda, capas y filtros independientes.
-- Aviones ADSB.lol hasta 250 millas náuticas alrededor del centro de la vista en modo local; detalle de indicativo, matrícula, modelo, velocidad, rumbo y altitudes publicadas.
-- Trenes de Renfe: Cercanías/Rodalies y feed conjunto de Alta Velocidad, Larga y Media Distancia en España. Posiciones, estado y códigos de estación/viaje.
-- Agrupaciones al alejarse, que se pueden pulsar para acercarse. Red ferroviaria mundial OpenRailwayMap a escala regional.
-- Fondos NASA: relieve/batimetría, MODIS del día anterior UTC y luces nocturnas de 2012. Carreteras y límites administrativos OSM. Son mapas y mosaicos, no vídeo en directo ni terreno geométrico 3D.
-- Última imagen de radar de RainViewer, con fecha y cobertura parcial.
-- Búsqueda explícita de lugares mediante Nominatim y vehículos de la cobertura cargada, sin autocompletado remoto.
-- Preferencias locales, interfaz móvil, fuentes y licencias visibles, errores y datos atrasados diferenciados. No hay tráfico simulado.
-- Barcos y satélites figuran como integraciones pendientes, sin marcadores ficticios.
+La aviación pasa de una consulta regional española a la cobertura mundial publicada por OpenSky. Cada posición conserva su símbolo individual. **Está prohibida la agregación numérica de aviones, barcos, trenes y satélites**, también en la vista mundial. La norma permanente está en [AGENTS.md](AGENTS.md).
 
-## Ejecutar sin cuentas ni dependencias
+- Menú con iconos, búsqueda mundial, zoom numérico en el extremo derecho y restablecimiento de la vista. Sin marca ni estadísticas sobre el mapa.
+- Acerca de central con presentación, versión, autor, portfolio y repositorio.
+- Fondos en lista: Satélite, Carreteras, Político, Relieve, Batimetría, Carta oceánica, Luces nocturnas y Tierra natural. Satélite utiliza Esri World Imagery hasta nivel 19; la nitidez y las fechas varían según la zona. No se promete resolución uniforme de Google Maps.
+- Infraestructura y meteorología dentro de Filtros. Vías de menor intensidad, regulable; trenes y demás vehículos opacos. El grosor del trazado raster procede de OpenRailwayMap.
+- Símbolos y colores por categorías publicadas, editables. Aviación ligera/pesada/helicópteros; tipos de barcos; servicios ferroviarios; familias orbitales. Tipos no publicados permanecen sin clasificar. No se inventan generaciones Starlink.
+- Leyenda activable y desactivable; ficha individual con datos disponibles, fecha de observación y fuente.
+- Satélites activos de CelesTrak, cálculo SGP4 en un trabajador separado cada dos segundos, búsqueda por nombre/NORAD. Son posiciones orbitales calculadas, no telemetría recibida.
+- Adaptador mundial AIS Stream preparado en servidor con clave protegida, tipos de barco y reconexión. Sin clave no aparecen barcos inventados.
+- Cambio de proyección mediante fundido conservando centro y altura. Se evita el recorrido de cámara de Cesium que causaba saltos extremos al cambiar desde una ciudad.
 
-Con Node.js 22 o superior:
+## Cobertura y actualización
+
+**Mundial describe el alcance del visor y de la consulta aérea, no una garantía de observar todos los vehículos del planeta.** OpenSky y AIS dependen de recepción; los trenes conectados actualmente proceden de Renfe en España. Otros operadores y metros necesitan sus fuentes propias.
+
+GitHub Pages aloja archivos estáticos. Actions actualiza la instantánea aérea mundial y ferroviaria aproximadamente cada quince minutos; el navegador busca un nuevo archivo cada treinta segundos. Actions puede retrasarse. Ninguna posición se rejuvenece al descargarla de nuevo, ni se hace circular un tren estacionario para aparentar recepción.
+
+El servidor opcional permite consultas regionales ADSB.lol y ferroviarias cada veinte segundos, AIS cada cinco segundos y búsqueda compartida. La consulta mundial OpenSky se comparte en caché durante quince minutos sin cuenta, o noventa segundos con credenciales: los límites gratuitos impiden consultar todo el planeta cada veinte segundos. El complemento regional conserva los aviones del resto del mundo.
+
+CelesTrak se descarga como máximo cada dos horas y se reutiliza para calcular el movimiento orbital en el navegador. La época de los elementos aparece en cada ficha. Si una fuente falla, se conserva el dato anterior con su fecha y error.
+
+## Desarrollo
+
+Node.js 22 o superior, dependencias gratuitas:
 
 ```sh
-node tools/server.mjs
+corepack enable
+corepack prepare pnpm@10.17.1 --activate
+pnpm install --frozen-lockfile
+pnpm vendor
+pnpm collect
+pnpm start
 ```
 
-Abre `http://localhost:4173`. El servidor escucha solo en la máquina local. Consulta fuentes cada 20 segundos y comparte caché; pausa consultas cuando la pestaña está oculta. Permite acceder a ADSB.lol y Renfe, que no ofrecen CORS directo al navegador. No solicita claves.
+Abre `http://localhost:4173`. El servidor solo escucha en la máquina local por defecto. Para otro puerto utiliza `PORT`. Copia `.env.example` a `.env` para configurar claves; `.env` no se publica ni se sirve.
 
 ```sh
-node --test
+pnpm test
 node --check src/app.js
-node tools/collect.mjs
+node --check src/orbit-worker.js
 ```
 
-QA de navegador opcional: `node tools/check-browser.mjs`, con servidor activo, Playwright y Edge instalados. `PLAYWRIGHT_MODULE`, `BROWSER_CHANNEL` y `TEST_ORIGIN` configuran el entorno. Las capturas de `artifacts/` no se publican.
+QA visual: servidor activo, Playwright y Edge, `node tools/check-browser.mjs`. Variables: `PLAYWRIGHT_MODULE`, `BROWSER_CHANNEL`, `TEST_ORIGIN` (por defecto puerto 4174). Comprueba escritorio/móvil, búsqueda mundial, capas, leyenda, colores, diálogo, conservación de vista y movimiento orbital. Capturas en `artifacts/`, fuera del despliegue.
 
-## GitHub Pages y Actions
+## Conectar el servidor público gratuito
 
-Configura **Settings → Pages → Source: GitHub Actions**. `pages.yml` valida y publica cambios de `main`, ejecuciones manuales e instantáneas programadas aproximadamente cada 15 minutos. Los pull requests ejecutan comprobaciones sin publicar.
+El repositorio incluye `Dockerfile` y `render.yaml` para un servicio en el plan gratuito de Render. Hace falta una cuenta del propietario; no se crea ni se activa facturación automáticamente. El servicio gratuito puede dormir y tardar en despertar: no garantiza continuidad de AIS. Para navegación continua podría ser necesario otro alojamiento que admita conexiones persistentes dentro de sus límites gratuitos.
 
-Pages es estático: **muestra instantáneas, no un flujo en directo**. Los aviones cubren un círculo fijo de 250 mn alrededor de 40° N, 3° O; los trenes cubren los feeds españoles. Mover el mapa no desplaza esa cobertura. Actions puede retrasar u omitir ejecuciones; cada posición conserva su fecha. El navegador comprueba nuevas instantáneas cada diez minutos. El despliegue publica solamente `index.html`, `src`, `assets` y la instantánea, sin servidor.
+1. Crea la clave gratuita en [AIS Stream](https://www.aisstream.io/) con GitHub.
+2. Importa este repositorio en Render como Blueprint, comprueba el plan gratuito y guarda `AISSTREAM_API_KEY` como secreto del servicio. No la pongas en archivos públicos, variables del navegador ni chats.
+3. Mantén `ALLOWED_ORIGINS=https://alejandropico.github.io` y comprueba `/api/status` y `/api/ships`.
+4. Añade la variable de repositorio **LIVE_API_URL** con la dirección HTTPS del servidor y ejecuta el workflow de Pages. No lleva clave. La web detectará el servidor y usará consultas de datos reales; si no responde, mantiene las instantáneas.
+5. Opcional: credenciales OAuth gratuitas OpenSky (`OPENSKY_CLIENT_ID` y `OPENSKY_CLIENT_SECRET`) en el servidor para aumentar la frecuencia mundial sin exceder créditos. Los secretos del workflow permiten mejorar la recolección estática; no sustituyen el servidor vivo.
 
-## Viabilidad sin pagar
+AIS Stream exige intermediario y prohíbe conexiones directas desde el navegador. La conexión se implementa pero no puede activarse sin la clave del propietario. No se afirma que los barcos estén conectados mientras el estado sea `unconfigured`.
 
-Se puede construir el visor y conseguir una cobertura útil sin pagar. **No hay garantía gratuita de cobertura mundial completa y continua de todos los transportes.** Los servicios comunitarios tienen límites, licencias y zonas sin datos; tampoco garantizan sostener una aplicación muy popular. GitHub Pages y Actions tienen límites propios. Esta versión no contrata servicios ni activa facturación.
+## Fuentes
 
-| Área | Fuente | Límite relevante |
+| Área | Fuente | Consideraciones |
 | --- | --- | --- |
-| Aviones | [ADSB.lol](https://www.adsb.lol/docs/open-data/api/), ODbL 1.0 | Cobertura de receptores. La posición no incluye necesariamente origen/destino ni todos los vuelos. |
-| Trenes españoles | [Cercanías](https://data.renfe.com/dataset/ubicacion-vehiculos) y [AV/LD/MD](https://data.renfe.com/dataset/posicion-vehiculos-av-ld-md), CC BY 4.0 | Solo vehículos publicados por Renfe. Sin horarios ni retrasos integrados aún. La fecha del feed no siempre es individual. |
-| Otros trenes y metros | Futuras fuentes por operador/país, preferentemente GTFS-RT | GPS, retrasos y horarios son distintos. Las futuras posiciones estimadas se etiquetarán como estimaciones. |
-| Barcos | [AIS Stream](https://www.aisstream.io/documentation), servicio gratuito con cuenta | Requiere clave y servidor intermediario; prohíbe conexión directa desde navegador. Pendiente en 0.1. No garantiza cobertura oceánica mundial. |
-| Cartografía | [OSM](https://operations.osmfoundation.org/policies/tiles/), [OpenRailwayMap](https://wiki.openstreetmap.org/wiki/OpenRailwayMap/API), [NASA GIBS](https://www.earthdata.nasa.gov/data/tools/gibs) | Atribución y capacidad limitada de teselas. ORM permite aplicaciones públicas pequeñas no comerciales. Sin descarga masiva. |
-| Tiempo | [RainViewer](https://www.rainviewer.com/api/weather-maps-api.html); futuro [Open-Meteo](https://open-meteo.com/en/pricing) | Radar con huecos/latencia y zoom nativo máximo 7. Open-Meteo gratuito alojado exige uso no comercial. |
-| Satélites | Futuro [CelesTrak](https://celestrak.org/NORAD/documentation/gp-data-formats.php) y SGP4 | Posiciones calculadas, no GPS recibido. Reutilizar elementos orbitales y respetar las políticas de actualización. |
+| Aviación mundial | [OpenSky REST](https://openskynetwork.github.io/opensky-api/rest.html) | Datos de la red de receptores, créditos y condiciones de uso. No incluye todos los vuelos ni siempre tipo, matrícula, origen o destino. |
+| Aviación regional | [ADSB.lol](https://www.adsb.lol/docs/open-data/api/) | ODbL; círculo máximo de 250 millas náuticas. No sustituye la capa mundial. |
+| Trenes | [Renfe Data](https://data.renfe.com/) | CC BY 4.0. Cercanías/Rodalies y feed conjunto AV/LD/MD; no se inventa separación de servicios ni velocidad. |
+| Navegación | [AIS Stream](https://www.aisstream.io/documentation) | Cuenta y clave gratuitas, servidor, cobertura parcial de mensajes AIS. |
+| Órbitas | [CelesTrak OMM](https://celestrak.org/NORAD/documentation/gp-data-formats.php) y [satellite.js](https://github.com/shashwatak/satellite-js) | SGP4; política de actualización de dos horas. OMM admite identificadores NORAD mayores que los de TLE. |
+| Satélite, relieve, océanos | [Esri términos](https://www.esri.com/en-us/legal/terms/web-site-service) | Servicios públicos con atribución, proyecto personal no comercial. Imágenes de distintas fechas; relieve cartográfico, no terreno geométrico 3D. |
+| Calles y ferrocarril | [OSM](https://operations.osmfoundation.org/policies/tiles/), [OpenRailwayMap](https://wiki.openstreetmap.org/wiki/OpenRailwayMap/API) | Atribución y políticas para aplicaciones pequeñas, sin descarga masiva de teselas. |
+| Radar | [RainViewer](https://www.rainviewer.com/api/weather-maps-api.html) | Última imagen publicada, cobertura parcial, zoom nativo máximo 7. |
+| Satélite meteorológico | [NASA GIBS](https://www.earthdata.nasa.gov/data/tools/gibs) | Fecha más reciente indicada en metadatos WMTS. GOES Este/Oeste y Himawari infrarrojo; no cubre toda la Tierra ni tiene detalle de edificios. |
+| Lugares | [Nominatim](https://operations.osmfoundation.org/policies/nominatim/) | Búsqueda explícita, sin autocompletado remoto; máximo una consulta por segundo y caché en servidor. |
 
-Las posiciones antiguas se atenúan: más de 60 segundos en aviones, más de 120 en trenes. Son umbrales de presentación, no certificaciones de precisión. No se inventa movimiento a partir de posiciones viejas, ni se deduce precisión espacial de la antigüedad.
-
-## Próximas versiones
-
-1. Servidor AIS con clave protegida y filtros según tipos publicados.
-2. Unir Renfe con GTFS de horarios/estaciones y actualizaciones de viaje para rutas, nombres y retrasos, sin confundir horario con GPS; añadir operadores y metros disponibles.
-3. Aeropuertos, puertos y estaciones; después rutas aeronáuticas y balizas reutilizables.
-4. Satélites SGP4, con edad de elementos orbitales visible.
-5. Viento, nubes y más variables meteorológicas con fecha y cobertura.
-6. Cobertura multirregión y caché para más usuarios; revisar políticas antes de explotar comercialmente.
-
-## Referencias
-
-[RadarDeTrenes](https://radardetrenes.com/), [OpenRailwayMap](https://www.openrailwaymap.org/), [Windy](https://www.windy.com/), [Positrén](https://positren.nebulacodex.com/), [Flexport Atlas](https://atlas.flexport.com/), [LocalizaTodo](https://www.localizatodo.com/html5/), [SatelliteMap](https://satellitemap.space/). Orientan alcance e interacciones; se usan fuentes independientes abiertas, sin copiar recursos ni extraer posiciones mediante scraping.
+Sin servicios de pago ni tráfico simulado. Una futura explotación comercial o gran carga requerirá revisar las condiciones y capacidad de cada proveedor.
 
 ## Estructura
 
-`src/app.js`: visor/interfaz. `src/model.js`: validación, filtros, antigüedad. `tools/providers.mjs`: conectores. `tools/server.mjs`: servidor/caché/búsqueda limitada. `tools/collect.mjs`: instantáneas. `test/`: unidades, fechas, filtros y servidor. Nuevas fuentes pueden añadirse sin rehacer el visor.
+`src/app.js`: visor, interfaz y símbolos individuales. `catalog.js`: categorías/iconos. `model.js`: validación, unidades, fechas y mezcla mundial/regional. `layers.js`: cartografía. `orbit-worker.js`: SGP4. `tools/providers.mjs`: fuentes. `ais.mjs`: mensajes marítimos. `server.mjs`: servidor protegido y caché. `collect.mjs`: instantáneas. `vendor.mjs`: publicación de satellite.js. `test/`: validación de datos y servidor.
+
+Referencias de producto: [RadarDeTrenes](https://radardetrenes.com/), [OpenRailwayMap](https://www.openrailwaymap.org/), [Windy](https://www.windy.com/), [Positrén](https://positren.nebulacodex.com/), [Flexport Atlas](https://atlas.flexport.com/), [LocalizaTodo](https://www.localizatodo.com/html5/) y [SatelliteMap](https://satellitemap.space/).

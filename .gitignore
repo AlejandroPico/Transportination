@@ -4,3 +4,6 @@ node_modules/
 !.env.example
 artifacts/
 data/feed.json
+data/satellites.json
+data/config.json
+vendor/

@@ -1,12 +1,20 @@
 {
   "name": "transportination",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
+  "packageManager": "pnpm@10.17.1",
   "type": "module",
   "scripts": {
     "start": "node tools/server.mjs",
     "test": "node --test",
-    "collect": "node tools/collect.mjs"
+    "collect": "node tools/collect.mjs",
+    "vendor": "node tools/vendor.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "satellite.js": "7.1.0",
+    "ws": "8.22.0"
+  }
 }

@@ -1,11 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1117">
-  <meta name="description" content="Transportination: un atlas abierto de transportes. Tierra, mar y aire en un mismo mundo.">
-  <title>Transportination — Tierra, mar y aire</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1117"><meta name="description" content="Explora la Tierra y sus transportes en un mismo atlas: aviones, trenes, barcos y satélites, en 2D y 3D.">
+  <title>Transportination · Atlas de transportes</title>
   <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.134/Build/Cesium/Widgets/widgets.css">
   <link rel="stylesheet" href="./src/style.css">
@@ -13,68 +11,57 @@
   <script src="./src/app.js" type="module"></script>
 </head>
 <body>
-  <main id="map" aria-label="Mapa interactivo del mundo"></main>
-  <header class="brand"><img src="./assets/mark.svg" alt="" width="32" height="32"><div><h1>TRANSPORTINATION<span>0.1</span></h1><p>TIERRA · MAR · AIRE</p></div></header>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/></symbol>
+    <symbol id="i-flat" viewBox="0 0 24 24"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2zM9 3v16M15 5v16"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6h14M5 18h14"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8zM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 4h18l-7 9v7l-4-2v-5z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><path d="M12 10v9M12 5v1"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></symbol>
+  </defs></svg>
+  <main id="map" aria-label="Atlas mundial de transportes"></main>
   <nav class="toolbar" aria-label="Herramientas del mapa">
-    <button id="zoom" title="Restaurar la vista del mundo" aria-label="Restaurar vista, zoom 100%">100%</button>
-    <button id="dimension" title="Cambiar a mapa plano" aria-label="Cambiar a 2D">2D</button>
-    <button data-panel="search" aria-controls="search" aria-expanded="false"><span class="glyph">⌕</span><span>Buscar</span></button>
-    <button data-panel="layers" aria-controls="layers" aria-expanded="false"><span class="glyph">▱</span><span>Capas</span></button>
-    <button data-panel="filters" aria-controls="filters" aria-expanded="false"><span class="glyph">≡</span><span>Filtros</span></button>
-    <button data-panel="about" aria-controls="about" aria-expanded="false" aria-label="Fuentes y cobertura">i</button>
+    <button data-panel="search" title="Buscar" aria-label="Buscar" aria-controls="search" aria-expanded="false"><svg><use href="#i-search"/></svg></button>
+    <button id="dimension" title="Cambiar a 2D" aria-label="Cambiar a 2D"><svg><use href="#i-flat"/></svg></button>
+    <button data-panel="layers" title="Capas" aria-label="Capas" aria-controls="layers" aria-expanded="false"><svg><use href="#i-layers"/></svg></button>
+    <button data-panel="filters" title="Filtros" aria-label="Filtros" aria-controls="filters" aria-expanded="false"><svg><use href="#i-filter"/></svg></button>
+    <button id="legend-toggle" title="Mostrar leyenda" aria-label="Mostrar leyenda" aria-pressed="false"><svg><use href="#i-eye"/></svg></button>
+    <button id="about-button" title="Acerca de Transportination" aria-label="Acerca de Transportination"><svg><use href="#i-info"/></svg></button>
+    <button id="zoom" title="Restaurar vista" aria-label="Restaurar vista, zoom 100%">100%</button>
   </nav>
-  <section id="search" class="panel" aria-labelledby="search-title" hidden>
-    <div class="panel-head"><h2 id="search-title">Encontrar en el mundo</h2><button data-close aria-label="Cerrar búsqueda">×</button></div>
-    <form id="search-form"><label for="query">Lugar, vuelo, matrícula o número de tren</label><div class="search-field"><input id="query" type="search" autocomplete="off" placeholder="Barcelona, EC-…, C2…" maxlength="120"><button type="submit" aria-label="Buscar">→</button></div></form>
-    <p class="hint">Vehículos en la cobertura cargada y lugares de todo el mundo. Pulsa Intro para buscar.</p>
+  <section id="search" class="panel search-panel" aria-label="Búsqueda mundial" hidden>
+    <form id="search-form"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="query" aria-label="Buscar lugar o vehículo" type="search" autocomplete="off" placeholder="Lugar, vuelo, matrícula, tren, MMSI, satélite…" maxlength="120"><button type="submit" title="Buscar" aria-label="Buscar">↵</button></form>
     <div id="results" aria-live="polite"></div>
-    <div class="section-label">PUNTOS DE PARTIDA</div>
-    <div class="places"><button data-place="spain">España <span>↗</span></button><button data-place="europe">Europa <span>↗</span></button><button data-place="barcelona">Barcelona <span>↗</span></button><button data-place="world">El mundo <span>↗</span></button></div>
   </section>
   <section id="layers" class="panel" aria-labelledby="layers-title" hidden>
-    <div class="panel-head"><h2 id="layers-title">Una Tierra. Varias miradas.</h2><button data-close aria-label="Cerrar capas">×</button></div>
-    <p class="hint">El fondo cambia; tus filtros y selecciones se conservan.</p>
-    <div class="layer-grid" role="group" aria-label="Mapa base">
-      <button data-base="natural" aria-pressed="true"><span class="swatch natural"></span><strong>Atlas natural</strong><small>NASA · relieve y batimetría</small></button>
-      <button data-base="roads" aria-pressed="false"><span class="swatch roads"></span><strong>Carreteras</strong><small>OpenStreetMap · calles y ciudades</small></button>
-      <button data-base="satellite" aria-pressed="false"><span class="swatch satellite"></span><strong>Satélite diario</strong><small>NASA · mosaico MODIS, día anterior UTC</small></button>
-      <button data-base="night" aria-pressed="false"><span class="swatch night"></span><strong>Luces nocturnas</strong><small>NASA · composición de 2012</small></button>
-    </div>
-    <p id="base-note" class="hint"></p>
-    <div class="section-label">SUPERPOSICIONES</div>
-    <label class="check-row"><input type="checkbox" id="railways" checked><span>Red ferroviaria</span><small>Al acercarse</small></label>
-    <label class="check-row"><input type="checkbox" id="radar"><span>Radar de lluvia</span><small>RainViewer</small></label>
-    <p id="radar-note" class="hint">Última imagen disponible; la ausencia de ecos no garantiza ausencia de lluvia.</p>
+    <header class="panel-head"><h2 id="layers-title">Capas</h2><button data-close aria-label="Cerrar capas"><svg><use href="#i-close"/></svg></button></header>
+    <div id="base-list" role="group" aria-label="Mapa base"></div>
   </section>
   <section id="filters" class="panel" aria-labelledby="filters-title" hidden>
-    <div class="panel-head"><h2 id="filters-title">Tu mundo, a tu medida</h2><button data-close aria-label="Cerrar filtros">×</button></div>
-    <p class="hint">Combina transportes y despliega sus categorías.</p>
-    <details open class="filter-group air"><summary>Aviones <span id="air-count">—</span></summary><label class="check-row"><input type="checkbox" data-filter="air" checked><span>Mostrar aviones</span></label><label class="check-row"><input type="checkbox" data-filter="airLarge" checked><span>Medianos y grandes</span></label><label class="check-row"><input type="checkbox" data-filter="airSmall" checked><span>Ligeros y helicópteros</span></label><label class="check-row"><input type="checkbox" data-filter="airOther" checked><span>Sin categoría publicada</span></label><p id="air-source" class="hint">ADSB.lol · cobertura de receptores, hasta 250 millas náuticas alrededor del centro de la vista.</p></details>
-    <details open class="filter-group rail"><summary>Trenes <span id="rail-count">—</span></summary><label class="check-row"><input type="checkbox" data-filter="rail" checked><span>Mostrar trenes</span></label><label class="check-row"><input type="checkbox" data-filter="commuter" checked><span>Cercanías y Rodalies · España</span></label><label class="check-row"><input type="checkbox" data-filter="longDistance" checked><span>Alta Velocidad, Larga y Media Distancia</span></label><p class="hint">Renfe · posiciones publicadas, sin interpolar recorridos ni inventar retrasos. Metros y otros operadores pendientes.</p></details>
-    <details class="filter-group sea"><summary>Barcos <span>Sin conectar</span></summary><p class="hint">AIS Stream ofrece un flujo gratuito. Hace falta una clave de cuenta y un servidor que la proteja. No se muestran posiciones ficticias.</p><a href="https://www.aisstream.io/" target="_blank" rel="noreferrer">Consultar AIS Stream ↗</a></details>
-    <details class="filter-group space"><summary>Satélites <span>Próxima etapa</span></summary><p class="hint">Integración prevista con CelesTrak y propagación orbital SGP4. Las posiciones calculadas se identificarán como predicciones.</p></details>
+    <header class="panel-head"><h2 id="filters-title">Filtros</h2><button data-close aria-label="Cerrar filtros"><svg><use href="#i-close"/></svg></button></header>
+    <div id="transport-filters"></div>
+    <details class="filter-group"><summary>Infraestructura</summary><label class="check-row"><input id="railways" type="checkbox" checked><span>Vías ferroviarias</span></label><label class="range-row"><span>Intensidad del trazado</span><input id="rail-opacity" type="range" min="0.05" max="0.7" step="0.05" value="0.25" aria-label="Opacidad de las vías ferroviarias"></label></details>
+    <details class="filter-group"><summary>Meteorología</summary><label class="check-row"><input id="radar" type="checkbox"><span>Radar de lluvia</span></label><label class="check-row"><input id="clouds" type="checkbox"><span>Satélite meteorológico · última imagen</span></label><p id="weather-note" class="small-note" aria-live="polite"></p></details>
+    <details class="filter-group"><summary>Presentación</summary><label class="check-row"><input id="legend-check" type="checkbox"><span>Leyenda</span></label><label class="range-row"><span>Tamaño de los símbolos</span><input id="symbol-size" type="range" min="16" max="36" step="1" value="24" aria-label="Tamaño de los símbolos"></label><button id="reset-colors" class="text-button">Restaurar colores</button></details>
   </section>
-  <section id="about" class="panel" aria-labelledby="about-title" hidden>
-    <div class="panel-head"><h2 id="about-title">Un atlas abierto, en construcción</h2><button data-close aria-label="Cerrar información">×</button></div>
-    <p>Tierra, mar y aire comparten el mismo mundo. Transportination los reúne en una vista que irá creciendo, fuente a fuente.</p>
-    <div class="section-label">COBERTURA DE LA VERSIÓN 0.1</div><p class="hint">Aviones en una región de hasta 250 mn alrededor del centro; trenes publicados por Renfe en España; cartografía ferroviaria mundial según OpenStreetMap. No es un inventario completo de vehículos.</p>
-    <p id="mode-note" class="hint"></p>
-    <div class="section-label">FUENTES Y LICENCIAS</div>
-    <ul class="source-list"><li><a href="https://www.adsb.lol/docs/open-data/api/" target="_blank" rel="noreferrer">ADSB.lol</a><span>ODbL 1.0 · aviones</span></li><li><a href="https://data.renfe.com/dataset/ubicacion-vehiculos" target="_blank" rel="noreferrer">Renfe Data</a><span>CC BY 4.0 · trenes</span></li><li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a><span>ODbL · carreteras</span></li><li><a href="https://wiki.openstreetmap.org/wiki/OpenRailwayMap/API" target="_blank" rel="noreferrer">OpenRailwayMap</a><span>OSM · estilo CC BY-SA 2.0</span></li><li><a href="https://www.earthdata.nasa.gov/data/tools/gibs" target="_blank" rel="noreferrer">NASA GIBS</a><span>Imágenes de la Tierra</span></li><li><a href="https://www.rainviewer.com/api.html" target="_blank" rel="noreferrer">RainViewer</a><span>Radar de precipitación</span></li></ul>
-    <a class="repo-link" href="https://github.com/AlejandroPico/Transportination" target="_blank" rel="noreferrer">Seguir el proyecto en GitHub ↗</a>
-  </section>
+  <aside id="legend" class="legend" aria-label="Leyenda de símbolos" hidden><header class="panel-head"><h2>Leyenda</h2><button id="legend-close" aria-label="Ocultar leyenda"><svg><use href="#i-close"/></svg></button></header><div id="legend-items"></div></aside>
   <aside id="detail" class="detail panel" aria-labelledby="detail-title" hidden></aside>
-  <section class="legend" aria-label="Estado de las fuentes">
-    <p class="section-label">EL MUNDO EN MOVIMIENTO</p>
-    <button class="status-row" data-panel="filters"><span class="dot air"></span><span>Aviones</span><strong id="air-total">—</strong><small id="air-status">Conectando</small></button>
-    <button class="status-row" data-panel="filters"><span class="dot rail"></span><span>Trenes</span><strong id="rail-total">—</strong><small id="rail-status">Conectando</small></button>
-    <button class="status-row" data-panel="filters"><span class="dot sea"></span><span>Barcos</span><strong>—</strong><small>Sin conectar</small></button>
-    <button class="explore" data-place="spain">Explorar España <span>↗</span></button>
-  </section>
-  <div class="world-caption"><p>UN PLANETA.<br>INFINITOS RECORRIDOS.</p><span>Un atlas del transporte, capa a capa.</span></div>
-  <footer class="statusbar"><span id="connection">Preparando el mundo…</span><span id="coordinates">40° N · 3° O</span><time id="clock"></time></footer>
+  <dialog id="about" class="about-dialog" aria-labelledby="about-title">
+    <header class="dialog-head"><span>ACERCA DEL PROYECTO</span><button id="about-close" aria-label="Cerrar Acerca de"><svg><use href="#i-close"/></svg></button></header>
+    <div class="about-brand"><img src="./assets/mark.svg" alt="" width="56" height="56"><div><h1 id="about-title">Transportination</h1><p>Tierra · Mar · Aire · Espacio</p></div></div>
+    <p class="about-lead">El mundo se mueve. Explóralo.</p>
+    <p>Transportination reúne la aviación, el ferrocarril, la navegación y las órbitas en un atlas interactivo. Recorre el planeta, combina transportes y observa cómo se relacionan con la geografía y el tiempo.</p>
+    <p>Del globo a la ciudad, del recorrido a cada vehículo: distintas miradas sobre un mismo mundo, con símbolos individuales y controles a tu medida.</p>
+    <dl class="project-meta"><div><dt>Autor</dt><dd>Alejandro Pico</dd></div><div><dt>Edición</dt><dd>Versión 0.2.0</dd></div><div><dt>Proyecto</dt><dd>Personal · no comercial</dd></div><div><dt>Principio</dt><dd>Fuentes trazables</dd></div></dl>
+    <nav class="about-links" aria-label="Enlaces del proyecto"><a href="https://alejandropico.github.io/Portfolio/" target="_blank" rel="noopener noreferrer">Portfolio <span>↗</span></a><a href="https://github.com/AlejandroPico/Transportination" target="_blank" rel="noopener noreferrer">Repositorio <span>↗</span></a></nav>
+    <details class="technical"><summary>Fuentes y estado de las conexiones</summary><div id="source-status"></div><p>La cobertura mundial corresponde a los datos publicados por las fuentes conectadas. Las zonas sin recepción no contienen vehículos inventados. Los satélites se calculan con SGP4; el satélite cartográfico es un mosaico de distintas fechas.</p><ul><li><a href="https://opensky-network.org/data/api" target="_blank" rel="noreferrer">OpenSky Network · aviación mundial</a></li><li><a href="https://www.adsb.lol/docs/open-data/api/" target="_blank" rel="noreferrer">ADSB.lol · posiciones regionales</a></li><li><a href="https://data.renfe.com/" target="_blank" rel="noreferrer">Renfe Data · ferrocarril español · CC BY 4.0</a></li><li><a href="https://www.aisstream.io/documentation" target="_blank" rel="noreferrer">AIS Stream · navegación</a></li><li><a href="https://celestrak.org/" target="_blank" rel="noreferrer">CelesTrak · elementos orbitales</a></li><li><a href="https://www.esri.com/en-us/legal/terms/web-site-service" target="_blank" rel="noreferrer">Esri · imágenes, relieve y océanos</a></li><li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · <a href="https://www.openrailwaymap.org/" target="_blank" rel="noreferrer">OpenRailwayMap</a></li><li><a href="https://www.earthdata.nasa.gov/data/tools/gibs" target="_blank" rel="noreferrer">NASA GIBS</a> · <a href="https://www.rainviewer.com/api.html" target="_blank" rel="noreferrer">RainViewer</a></li></ul></details>
+  </dialog>
+  <footer class="statusbar"><span id="connection">Conectando fuentes…</span><span id="coordinates"></span><time id="clock"></time></footer>
   <div id="notice" role="status" aria-live="polite" hidden></div>
-  <div id="loading"><span class="loader-mark">T</span><p>Preparando el mundo</p><small>Transportination · atlas de transportes</small></div>
-  <noscript>Activa JavaScript para explorar el mapa.</noscript>
+  <div id="loading"><img src="./assets/mark.svg" alt="" width="48" height="48"><p>Preparando el mundo</p><small></small></div>
+  <noscript>Activa JavaScript para explorar el atlas.</noscript>
 </body>
 </html>

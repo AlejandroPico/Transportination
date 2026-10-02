@@ -1,4 +1,4 @@
-import { isVisible, ageSeconds, searchVehicles, restoreFilters, mergeAircraft, normalizeSatellites } from './model.js';
+import { isVisible, ageSeconds, searchVehicles, restoreFilters, mergeAircraft, normalizeSatellites } from './model.js?v=0.2';
 import { CATEGORY, KIND, markerSvg } from './catalog.js';
 import { BASES, baseProvider, esriProvider, nasaProvider } from './layers.js';
 const $ = id => document.getElementById(id);

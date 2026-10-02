@@ -16,6 +16,7 @@ let viewer, C, apiRoot = '', mode = 'snapshot', activePanel, selected, worker, w
 let globalAir = [], regionalAir = [], satellites = [], satellitePacket, orbitTime, noticeTimer, searchSequence = 0, lastSearch = 0;
 const items = { air: [], rail: [], sea: [], space: [] }, packets = {}, errors = {}, stores = {}, symbols = new Map(), images = new Map(), busy = new Set();
 let baseLayer, referenceLayer, railwayLayer, radarLayer, radarTime, cloudLayers = [], cloudTimes = [], lastRegion = '';
+let worldRefreshMs = 900000;
 let legendVisible = saved.legend === true;
 let symbolSize = Number.isFinite(saved.symbolSize) ? Math.max(16, Math.min(36, saved.symbolSize)) : 24;
 function persist() {
@@ -97,6 +98,7 @@ function updateCamera() {
   if (!viewer) return;
   const p = center(), zoom = Math.max(1, Math.round(HOME.height / p.height * 100));
   $('zoom').textContent = number(zoom) + '%'; $('zoom').setAttribute('aria-label', `Restaurar vista, zoom ${zoom}%`);
+  $('zoom').style.fontSize = $('zoom').textContent.length > 8 ? '9px' : '11px';
   $('coordinates').textContent = `${p.lat.toFixed(2)}° · ${p.lon.toFixed(2)}°`;
   if (railwayLayer) railwayLayer.show = $('railways').checked && p.height < 4000000;
 }
@@ -210,13 +212,13 @@ function updateStatus() {
   $('clock').textContent = new Date().toLocaleTimeString('es-ES', { timeZone: 'UTC', hour12: false }) + ' UTC';
 }
 async function getJson(url, timeout = 30000) {
-  const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeout) });
+  const response = await fetch(url, { cache: 'no-cache', signal: AbortSignal.timeout(timeout) });
   if (!response.ok) throw new Error('HTTP ' + response.status);
   return response.json();
 }
 const api = path => apiRoot ? apiRoot + '/api/' + path : './api/' + path;
 async function discoverBackend() {
-  try { const status = await getJson('./api/status', 3000); if (status.mode === 'live') { mode = 'live'; return; } } catch { /* GitHub Pages has no server. */ }
+  try { const status = await getJson('./api/status', 3000); if (status.mode === 'live') { mode = 'live'; worldRefreshMs = status.worldRefreshMs === 90000 ? 90000 : 900000; return; } } catch { /* GitHub Pages has no server. */ }
   try {
     const config = await getJson('./data/config.json', 4000);
     if (config.liveApiUrl) {
@@ -224,7 +226,7 @@ async function discoverBackend() {
       if (url.protocol !== 'https:' || url.username || url.password) return;
       const candidate = url.href.replace(/\/$/, '');
       const status = await getJson(candidate + '/api/status', 15000);
-      if (status.mode === 'live') { apiRoot = candidate; mode = 'live'; }
+      if (status.mode === 'live') { apiRoot = candidate; mode = 'live'; worldRefreshMs = status.worldRefreshMs === 90000 ? 90000 : 900000; }
     }
   } catch { /* Static snapshots remain useful if the optional server is offline. */ }
 }
@@ -332,7 +334,8 @@ async function init() {
     loadSatellites(); refreshRadar(); refreshClouds(); updateStatus();
     setInterval(() => { if (!document.hidden) { updateStatus(); if (selected && selected.kind !== 'space') showDetail(selected); } }, 10000);
     setInterval(() => { if (!document.hidden && mode === 'snapshot') refreshSnapshot(); }, 30000);
-    setInterval(() => { if (!document.hidden) { refreshWorld(); refreshRegion(); refreshRail(); } }, 20000);
+    setInterval(() => { if (!document.hidden) { refreshRegion(); refreshRail(); } }, 20000);
+    setInterval(() => { if (!document.hidden) refreshWorld(); }, worldRefreshMs);
     setInterval(refreshShips, 5000);
     setInterval(() => { refreshRadar(); refreshClouds(); }, 600000);
   } catch (e) { $('loading').querySelector('p').textContent = 'El mundo no ha podido abrirse'; $('loading').querySelector('small').textContent = e.message; }

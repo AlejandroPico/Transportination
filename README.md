@@ -51,7 +51,7 @@ QA visual: servidor activo, Playwright y Edge, `node tools/check-browser.mjs`. V
 
 ## Conectar el servidor público gratuito
 
-El repositorio incluye `Dockerfile` y `render.yaml` para un servicio en el plan gratuito de Render. Hace falta una cuenta del propietario; no se crea ni se activa facturación automáticamente. El servicio gratuito puede dormir y tardar en despertar: no garantiza continuidad de AIS. Para navegación continua podría ser necesario otro alojamiento que admita conexiones persistentes dentro de sus límites gratuitos.
+El repositorio incluye `Dockerfile` y `render.yaml` para un servicio en el [plan gratuito de Render](https://render.com/docs/free). Hace falta una cuenta del propietario; no se crea ni se activa facturación automáticamente. Para respetar el presupuesto de cero euros, úsalo sin añadir un método de pago: al agotar límites se suspenden los servicios, en lugar de cobrar excedentes. El servicio gratuito puede dormir y tardar en despertar: no garantiza continuidad de AIS. Para navegación continua podría ser necesario otro alojamiento que admita conexiones persistentes dentro de sus límites gratuitos.
 
 1. Crea la clave gratuita en [AIS Stream](https://www.aisstream.io/) con GitHub.
 2. Importa este repositorio en Render como Blueprint, comprueba el plan gratuito y guarda `AISSTREAM_API_KEY` como secreto del servicio. No la pongas en archivos públicos, variables del navegador ni chats.

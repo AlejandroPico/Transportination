@@ -29,7 +29,7 @@ export function createServer() {
       if (origin && allowed.includes(origin)) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); }
       if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS' }); return res.end(); }
       if (req.method !== 'GET') return json(res, 405, { error: 'Método no permitido' });
-      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.2.0', ships: ais.packet().status });
+      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.2.0', worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, ships: ais.packet().status });
       if (url.pathname === '/api/aircraft/world') return json(res, 200, await cached('air-world', process.env.OPENSKY_CLIENT_ID ? 90000 : 900000, globalAircraft));
       if (url.pathname === '/api/aircraft') {
         const lat = Number(url.searchParams.get('lat')), lon = Number(url.searchParams.get('lon'));

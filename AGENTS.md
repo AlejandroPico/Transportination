@@ -16,5 +16,7 @@ Cada avión, barco, tren y satélite conserva su símbolo individual en el mapa,
 - Leyenda activable/desactivable. Búsqueda mundial sin puntos de partida prefijados.
 - Conservar vista, filtros y selección al cambiar 2D/3D. Sin saltos extremos de zoom.
 - Distinguir observaciones, instantáneas y posiciones calculadas. No animar posiciones viejas fingiendo recepción en directo. Satélites: SGP4 con época visible.
+- El propietario autoriza estimar trenes por los horarios de salida, llegada y paradas. Identificar siempre esas posiciones como estimadas, aplicar retrasos publicados y no presentarlas como GPS. Si falta la geometría de las vías, señalar el recorrido entre estaciones como aproximado.
+- Líneas y estaciones dentro del filtro Trenes: activables y con reguladores de resalte independientes, al máximo por defecto. El vehículo seleccionado muestra el recorrido disponible y las estaciones anteriores y siguientes.
 - Solo servicios gratuitos; no contratar ni activar facturación. Nunca publicar credenciales o claves AIS.
 - La sesión autoriza publicar versiones en main mediante Actions. Comprobar escritorio/móvil y el despliegue.

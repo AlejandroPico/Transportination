@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      fflate:
+        specifier: 0.8.2
+        version: 0.8.2
       satellite.js:
         specifier: 7.1.0
         version: 7.1.0
@@ -16,6 +19,9 @@ importers:
         version: 8.22.0
 
 packages:
+
+  fflate@0.8.2:
+    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
   satellite.js@7.1.0:
     resolution: {integrity: sha512-U6nRml9Nb7dV9LJPiMNPyna7U7ry+1nXYkOeCEG7K/YbojQQLHHmcjPisp03VNY+HLcbQHqbt7t4t1vQMaKCLQ==}
@@ -33,6 +39,8 @@ packages:
         optional: true
 
 snapshots:
+
+  fflate@0.8.2: {}
 
   satellite.js@7.1.0: {}
 

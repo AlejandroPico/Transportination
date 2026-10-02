@@ -1,4 +1,4 @@
-import { CATEGORY, aircraftCategory, satelliteCategory } from './catalog.js';
+import { CATEGORY, aircraftCategory, satelliteCategory } from './catalog.js?v=0.3';
 export const validPosition = (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 const finite = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
 export function normalizeAircraft(data, receivedAt = Date.now()) {
@@ -24,7 +24,7 @@ export function normalizeTrains(data, category) {
       lat: v.position.latitude, lon: v.position.longitude, altitude: 0,
       speed: finite(v.position.speed) !== null ? v.position.speed * 3.6 : null, bearing: finite(v.position.bearing),
       observedAt: Number.isFinite(ownTime) && ownTime > 0 ? ownTime : Number.isFinite(feedTime) && feedTime > 0 ? feedTime : null,
-      timestampScope: Number.isFinite(ownTime) && ownTime > 0 ? 'position' : 'feed', source: 'Renfe',
+      timestampScope: Number.isFinite(ownTime) && ownTime > 0 ? 'position' : 'feed', source: 'Renfe', country: 'España', operator: 'Renfe',
       state: ({ STOPPED_AT: 'En estación', IN_TRANSIT_TO: 'En circulación', INCOMING_AT: 'Aproximándose a estación' })[v.currentStatus] || 'Estado no publicado',
     };
   });

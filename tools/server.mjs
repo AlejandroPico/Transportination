@@ -29,13 +29,14 @@ export function createServer() {
       if (origin && allowed.includes(origin)) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); }
       if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS' }); return res.end(); }
       if (req.method !== 'GET') return json(res, 405, { error: 'Método no permitido' });
-      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.2.0', worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, ships: ais.packet().status });
+      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.3.0', regionRefreshMs: 5000, worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, ships: ais.packet().status });
       if (url.pathname === '/api/aircraft/world') return json(res, 200, await cached('air-world', process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, globalAircraft));
       if (url.pathname === '/api/aircraft') {
         const lat = Number(url.searchParams.get('lat')), lon = Number(url.searchParams.get('lon'));
         if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return json(res, 400, { error: 'Coordenadas inválidas' });
-        const a = Math.round(lat * 2) / 2, b = Math.round(lon * 2) / 2;
-        return json(res, 200, await cached(`air:${a}:${b}`, 20000, () => aircraft(a, b)));
+        const a = Math.round(lat * 100) / 100, b = Math.round(lon * 100) / 100;
+        const radius = Math.max(5, Math.min(250, Math.ceil(Number(url.searchParams.get('radius')) || 250)));
+        return json(res, 200, await cached(`air:${a}:${b}:${radius}`, 5000, () => aircraft(a, b, radius)));
       }
       if (url.pathname === '/api/trains') return json(res, 200, await cached('rail', 20000, trains));
       if (url.pathname === '/api/ships') return json(res, 200, ais.packet());

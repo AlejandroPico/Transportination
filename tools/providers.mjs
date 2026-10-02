@@ -1,13 +1,14 @@
 import { normalizeAircraft, normalizeTrains, normalizeOpenSky } from '../src/model.js';
-export const USER_AGENT = 'Transportination/0.2 (+https://github.com/AlejandroPico/Transportination)';
+import { finnishRail, northAmericanRail } from '../src/rail.js';
+export const USER_AGENT = 'Transportination/0.3 (+https://github.com/AlejandroPico/Transportination)';
 export async function fetchJson(url) {
   const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' }, signal: AbortSignal.timeout(18000) });
   if (!response.ok) throw new Error(`La fuente respondió HTTP ${response.status}`);
   return response.json();
 }
-export async function aircraft(lat = 40, lon = -3) {
-  const data = await fetchJson(`https://api.adsb.lol/v2/point/${lat}/${lon}/250`);
-  return { items: normalizeAircraft(data), fetchedAt: Date.now(), coverage: { lat, lon, radiusNm: 250 }, source: 'ADSB.lol' };
+export async function aircraft(lat = 40, lon = -3, radius = 250) {
+  const data = await fetchJson(`https://api.adsb.lol/v2/point/${lat}/${lon}/${radius}`);
+  return { items: normalizeAircraft(data), fetchedAt: Date.now(), coverage: { lat, lon, radiusNm: radius }, source: 'ADSB.lol' };
 }
 let skyToken;
 export async function globalAircraft() {
@@ -38,4 +39,17 @@ export async function trains() {
   results.forEach((r, i) => { if (r.status === 'fulfilled') items.push(...r.value.items); else errors.push({ category: feeds[i][0], message: r.reason.message }); });
   if (errors.length === feeds.length) throw new Error('Las dos fuentes de Renfe no están disponibles');
   return { items, errors, fetchedAt: Date.now(), coverage: 'España · Renfe', source: 'Renfe' };
+}
+export async function internationalTrains() {
+  const results = await Promise.allSettled([
+    Promise.all(['train-locations/latest/', 'live-trains', 'metadata/stations'].map(path => fetchJson('https://rata.digitraffic.fi/api/v1/' + path))).then(values => finnishRail(...values)),
+    Promise.all(['trains', 'stations'].map(path => fetchJson('https://api-v3.amtraker.com/v3/' + path))).then(values => northAmericanRail(...values)),
+  ]);
+  const packet = { items: [], journeys: [], stations: [], fetchedAt: Date.now(), errors: [], source: 'Fintraffic · Amtraker' };
+  results.forEach((r, i) => { if (r.status === 'fulfilled') { packet.items.push(...r.value.items); packet.journeys.push(...r.value.journeys); packet.stations.push(...r.value.stations); } else packet.errors.push({ source: ['Fintraffic', 'Amtraker'][i], message: r.reason.message }); });
+  return packet;
+}
+export async function railDelays() {
+  const results = await Promise.allSettled(['trip_updates.json', 'trip_updates_LD.json'].map(name => fetchJson('https://gtfsrt.renfe.com/' + name)));
+  return { entities: results.flatMap(r => r.status === 'fulfilled' ? r.value.entity || [] : []), fetchedAt: Date.now() };
 }

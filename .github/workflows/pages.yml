@@ -49,6 +49,12 @@ jobs:
           path: data/satellites.json
           key: orbital-v2-${{ env.ORBIT_PERIOD }}
           restore-keys: orbital-v2-
+      - name: Railway calendar period
+        run: echo "RAIL_DAY=$(date -u +%Y%m%d)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: data/rail-cache
+          key: rail-v3-${{ env.RAIL_DAY }}
       - name: Fetch public transport snapshots
         run: node tools/collect.mjs
         env:

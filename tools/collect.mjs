@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { globalAircraft, satelliteElements, trains } from './providers.mjs';
+import { globalAircraft, satelliteElements, trains, internationalTrains, railDelays } from './providers.mjs';
+import { collectSchedules } from './rail-schedules.mjs';
 import { createAisFeed } from './ais.mjs';
 const dir = new URL('../data/', import.meta.url);
 let previous = {};
@@ -14,6 +15,17 @@ if (process.env.AISSTREAM_API_KEY) { ais.start(); await new Promise(r => setTime
 else feed.sea = { items: [], status: 'unconfigured', source: 'AIS Stream' };
 await mkdir(new URL('../data/', import.meta.url), { recursive: true });
 await writeFile(new URL('../data/feed.json', import.meta.url), JSON.stringify(feed));
+const railway = await collectSchedules();
+const [international, delays] = await Promise.allSettled([internationalTrains(), railDelays()]);
+if (international.status === 'fulfilled') {
+  railway.journeys.push(...international.value.journeys); railway.stations.push(...international.value.stations);
+  railway.observations = international.value.items.map(({ journey, ...item }) => item);
+  railway.errors.push(...international.value.errors);
+} else railway.errors.push({ source: 'Ferrocarril internacional', message: international.reason.message });
+railway.delays = delays.status === 'fulfilled' ? delays.value : { entities: [] };
+await writeFile(new URL('rail-network.json', dir), JSON.stringify({ stations: railway.stations, shapes: railway.shapes }));
+await writeFile(new URL('rail-journeys.json', dir), JSON.stringify({ journeys: railway.journeys, observations: railway.observations || [], delays: railway.delays, fetchedAt: railway.fetchedAt, errors: railway.errors }));
+console.log(`Ferrocarril: ${railway.journeys.length} viajes con horarios y ${railway.observations?.length || 0} posiciones internacionales. Errores: ${railway.errors.length}`);
 let orbital;
 try { orbital = JSON.parse(await readFile(new URL('satellites.json', dir), 'utf8')); } catch { /* Fetch on first run. */ }
 if (!orbital || Date.now() - orbital.fetchedAt > 7200000) {

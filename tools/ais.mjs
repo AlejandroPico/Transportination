@@ -28,7 +28,7 @@ export function createAisFeed(apiKey = process.env.AISSTREAM_API_KEY) {
     if (!apiKey || stopped) return;
     status = 'connecting';
     socket = new WebSocket('wss://stream.aisstream.io/v0/stream', { perMessageDeflate: true, handshakeTimeout: 20000 });
-    socket.on('open', () => socket.send(JSON.stringify({ APIKey: apiKey, BoundingBoxes: [[[-85, -180], [85, 180]]], FilterMessageTypes: ['PositionReport', 'StandardClassBPositionReport', 'ExtendedClassBPositionReport', 'ShipStaticData', 'StaticDataReport'] })));
+    socket.on('open', () => socket.send(JSON.stringify({ APIKey: apiKey, BoundingBoxes: [[[-90, -180], [90, 180]]], FilterMessageTypes: ['PositionReport', 'StandardClassBPositionReport', 'ExtendedClassBPositionReport', 'ShipStaticData', 'StaticDataReport'] })));
     socket.on('message', bytes => {
       try {
         const message = JSON.parse(bytes.toString());

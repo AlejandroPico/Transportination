@@ -241,6 +241,7 @@ $('search-form').addEventListener('submit', async e => {
 function updateCamera() {
   if (morphing) return;
   const view = center(), percent = Math.max(1, Math.round(HOME.height / Math.max(1, view.height) * 100));
+  document.body.classList.toggle('regional-view', view.height < 4000000);
   if (railwayLayer) railwayLayer.show = $('railways').checked && view.height < 4000000;
   $('zoom').textContent = fmt.format(percent) + '%'; $('zoom').setAttribute('aria-label', `Restaurar vista, zoom ${percent}%`);
   $('coordinates').textContent = `${Math.abs(view.lat).toFixed(2)}° ${view.lat >= 0 ? 'N' : 'S'} · ${Math.abs(view.lon).toFixed(2)}° ${view.lon >= 0 ? 'E' : 'O'}`;

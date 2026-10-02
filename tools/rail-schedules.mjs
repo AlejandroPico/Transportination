@@ -6,7 +6,7 @@ const sources = [
   { key: 'es-ld', url: 'https://ssl.renfe.com/gtransit/Fichero_AV_LD/google_transit.zip', country: 'España', source: 'Renfe · GTFS', zone: 'Europe/Madrid', category: 'longDistance' },
   { key: 'es-cercanias', url: 'https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip', country: 'España', source: 'Renfe · GTFS', zone: 'Europe/Madrid', category: 'commuter' },
   { key: 'fr', url: 'https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip', country: 'Francia', source: 'SNCF · GTFS', zone: 'Europe/Paris', category: 'railOther' },
-  { key: 'at', url: 'https://static.web.oebb.at/open-data/soll-fahrplan-gtfs/GTFS_Fahrplan_2026.zip', country: 'Austria', operator: 'ÖBB / operadores del GTFS', source: 'ÖBB-Personenverkehr AG · GTFS · CC BY 4.0', zone: 'Europe/Vienna', category: 'railOther' },
+  { key: 'at', url: 'https://static.web.oebb.at/open-data/soll-fahrplan-gtfs/GTFS_Fahrplan_2026.zip', country: 'Austria', operator: 'ÖBB / operadores del GTFS', source: 'ÖBB-Personenverkehr AG · GTFS · CC BY 4.0', zone: 'Europe/Vienna', category: 'railOther', timeout: 240000 },
 ];
 export function* csv(text) {
   let cells = [], value = '', quoted = false, headers;
@@ -86,7 +86,7 @@ export async function collectSchedules(now = Date.now()) {
       if (!packet) {
         let body;
         if (process.env.GTFS_RESEARCH === '1') body = await readFile(new URL('../artifacts/gtfs/' + config.key + '.zip', import.meta.url));
-        else { const response = await fetch(config.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(60000) }); if (!response.ok) throw new Error('HTTP ' + response.status); body = new Uint8Array(await response.arrayBuffer()); }
+        else { const response = await fetch(config.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(config.timeout || 60000) }); if (!response.ok) throw new Error('HTTP ' + response.status); body = new Uint8Array(await response.arrayBuffer()); }
         const needed = new Set(['agency.txt','calendar.txt','calendar_dates.txt','routes.txt','stops.txt','stop_times.txt','trips.txt','shapes.txt']);
         // Huge national shape tables can exceed the JS string limit. Timetables still
         // work; the UI explicitly identifies station-to-station routes as approximate.

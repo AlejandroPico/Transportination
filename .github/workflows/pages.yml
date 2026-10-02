@@ -57,6 +57,10 @@ jobs:
           key: rail-v4-${{ env.RAIL_DAY }}
       - uses: actions/cache@v4
         with:
+          path: data/rail-cache/at.json
+          key: at-rail-v4-${{ env.RAIL_DAY }}
+      - uses: actions/cache@v4
+        with:
           path: |
             data/aviation.json
             data/airspace.json

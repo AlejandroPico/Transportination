@@ -68,10 +68,15 @@ export const collectWeather = () => cached('weather.json', 21600000, async () =>
   // 2,376 locations × four collections/day = 9,504 location calls, below the free daily limit.
   // Four variables and one day remain within the provider's unweighted variable/time allowance.
   const coords = []; for (let lat = -80; lat <= 80; lat += 5) for (let lon = -180; lon < 180; lon += 5) coords.push([lon, lat]);
+  // Pin the forecast window once. A collection can cross an hour boundary;
+  // forecast_hours would then return different axes in later batches.
+  const forecastStart = Math.floor(Date.now()/3600000)*3600000;
+  const startHour = new Date(forecastStart).toISOString().slice(0,16);
+  const endHour = new Date(forecastStart+23*3600000).toISOString().slice(0,16);
   const points = []; let times;
   for (let start = 0; start < coords.length; start += 100) {
     if (start) await new Promise(r => setTimeout(r, 11000));
-    const batch = coords.slice(start, start + 100), p = new URLSearchParams({ latitude: batch.map(p => p[1]).join(','), longitude: batch.map(p => p[0]).join(','), hourly: 'temperature_2m,precipitation,wind_speed_10m,wind_direction_10m', forecast_hours: '24', timezone: 'GMT' });
+    const batch = coords.slice(start, start + 100), p = new URLSearchParams({ latitude: batch.map(p => p[1]).join(','), longitude: batch.map(p => p[0]).join(','), hourly: 'temperature_2m,precipitation,wind_speed_10m,wind_direction_10m', start_hour: startHour, end_hour: endHour, timezone: 'GMT', cell_selection: 'nearest' });
     const data = await json('https://api.open-meteo.com/v1/forecast?' + p);
     if (!Array.isArray(data) || data.length !== batch.length) throw new Error('Open-Meteo: malla incompleta');
     for (let i = 0; i < data.length; i++) { const h = data[i].hourly; times ||= h.time.map(t => Date.parse(t + 'Z')); if (h.time.some((t, k) => Date.parse(t + 'Z') !== times[k])) throw new Error('Open-Meteo: horas incompatibles'); points.push({ lon: batch[i][0], lat: batch[i][1], temperature: h.temperature_2m, rain: h.precipitation, wind: h.wind_speed_10m, direction: h.wind_direction_10m }); }

@@ -93,7 +93,7 @@ AIS Stream exige intermediario y prohíbe conexiones directas desde el navegador
 | Satélite, relieve, océanos | [Esri términos](https://www.esri.com/en-us/legal/terms/web-site-service) | Servicios públicos con atribución, proyecto personal no comercial. Imágenes de distintas fechas; relieve cartográfico, no terreno geométrico 3D. |
 | Calles y ferrocarril | [OSM](https://operations.osmfoundation.org/policies/tiles/), [OpenRailwayMap](https://wiki.openstreetmap.org/wiki/OpenRailwayMap/API) | Atribución y políticas para aplicaciones pequeñas, sin descarga masiva de teselas. |
 | Radar | [RainViewer](https://www.rainviewer.com/api/weather-maps-api.html) | Última imagen publicada, cobertura parcial, zoom nativo máximo 7. |
-| Satélite meteorológico | [NASA GIBS](https://www.earthdata.nasa.gov/data/tools/gibs) | Fecha más reciente indicada en metadatos WMTS. GOES Este/Oeste y Himawari infrarrojo; no cubre toda la Tierra ni tiene detalle de edificios. |
+| Satélite meteorológico | [EUMETView](https://user.eumetsat.int/data-access/eumetview/resources) | Última fecha publicada por WMS: mosaico infrarrojo mundial de tres horas y Meteosat de quince minutos para Europa/África o el Índico. Cobertura propia de cada producto. |
 | Lugares | [Nominatim](https://operations.osmfoundation.org/policies/nominatim/) | Búsqueda explícita, sin autocompletado remoto; máximo una consulta por segundo y caché en servidor. |
 
 Sin servicios de pago. Las estimaciones ferroviarias y órbitas calculadas están identificadas como tales. Una futura explotación comercial o gran carga requerirá revisar las condiciones y capacidad de cada proveedor.

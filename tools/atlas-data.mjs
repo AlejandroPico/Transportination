@@ -12,7 +12,18 @@ const json = async url => {
     // weather host. Curl uses the same public endpoint and network, without a proxy.
     // Do not retry HTTP refusals or quotas through another transport.
     if (!process.env.GITHUB_ACTIONS || new URL(url).hostname !== 'api.open-meteo.com') throw error;
-    const result = await run('curl', ['--ipv4','--silent','--show-error','--connect-timeout','15','--max-time','45','--write-out','\n%{http_code}',url], { maxBuffer: 8000000 });
+    let result;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        result = await run('curl', ['--ipv4','--silent','--show-error','--connect-timeout','25','--max-time','45','--write-out','\n%{http_code}',url], { maxBuffer: 8000000 });
+        break;
+      } catch (connectionError) {
+        // Retry only DNS/socket/TLS transport failures on the same endpoint.
+        // Curl exits successfully for HTTP replies, which are handled below.
+        if (![6,7,28,35,52,56].includes(connectionError.code) || attempt === 2) throw new Error('Open-Meteo: conexión interrumpida (' + connectionError.code + ')');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
     const at = result.stdout.lastIndexOf('\n'), status=Number(result.stdout.slice(at+1));
     if(status!==200) { const failure=new Error('Open-Meteo HTTP '+status);if(status===429)failure.retryAt=Date.now()+3600000;throw failure; }
     return JSON.parse(result.stdout.slice(0,at));
@@ -24,6 +35,14 @@ async function cached(name, ttl, build) {
   let old;
   try { old = JSON.parse(await readFile(new URL(name, dir))); } catch {
     try { old = await json('https://alejandropico.github.io/Transportination/data/' + name); } catch { /* First edition. */ }
+  }
+  // Action caches are immutable. A restored file can precede a newer edition
+  // already published by another run; reuse that edition before collecting again.
+  if (old && Date.now() - old.fetchedAt >= ttl) {
+    try {
+      const published = await json('https://alejandropico.github.io/Transportination/data/' + name);
+      if (published.fetchedAt > old.fetchedAt) old = published;
+    } catch { /* The existing packet remains the dated fallback. */ }
   }
   if (old && (Date.now() - old.fetchedAt < ttl || Date.now() < old.retryAt)) { await mkdir(dir, { recursive: true }); await writeFile(new URL(name, dir), JSON.stringify(old)); return old; }
   try { const packet = await build(); await mkdir(dir, { recursive: true }); await writeFile(new URL(name, dir), JSON.stringify(packet)); return packet; }

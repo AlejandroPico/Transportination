@@ -57,7 +57,7 @@ export function createServer() {
       if (url.pathname.startsWith('/api/')) return json(res, 404, { error: 'Servicio no conectado' });
       const decoded = decodeURIComponent(url.pathname);
       const target = path.resolve(root, '.' + (decoded === '/' ? '/index.html' : decoded));
-      const publicPath = decoded === '/' || decoded === '/index.html' || /^\/(assets|src|data|vendor)\//.test(decoded);
+      const publicPath = decoded === '/' || decoded === '/index.html' || decoded === '/favicon.svg' || /^\/(assets|src|data|vendor)\//.test(decoded);
       if (!publicPath || !target.startsWith(root) || decoded.includes('\\') || decoded.split('/').some(p => p.startsWith('.'))) return json(res, 403, { error: 'Acceso no permitido' });
       const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.gltf': 'model/gltf+json', '.svg': 'image/svg+xml', '.md': 'text/plain' };
       const body = await readFile(target);

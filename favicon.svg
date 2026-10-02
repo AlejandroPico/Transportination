@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Transportination · caminos que se cruzan</title>
+  <path fill="#0b1117" d="M0 0h64v64H0z"/>
+  <g fill="none" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter">
+    <path stroke="#e9b76b" d="m13 13 38 38M31 51h20V31"/>
+    <path stroke="#0b1117" stroke-width="15" d="m13 51 38-38"/>
+    <path stroke="#69d3e0" d="m13 51 38-38M31 13h20v20"/>
+  </g>
+</svg>

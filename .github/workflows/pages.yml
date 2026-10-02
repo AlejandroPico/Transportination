@@ -78,7 +78,7 @@ jobs:
       - name: Assemble public files
         run: |
           mkdir -p _site/data
-          cp index.html _site/
+          cp index.html favicon.svg _site/
           cp -r assets src vendor _site/
           cp data/*.json _site/data/
           touch _site/.nojekyll

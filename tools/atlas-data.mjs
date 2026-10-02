@@ -1,8 +1,22 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { csv } from './rail-schedules.mjs';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 const dir = new URL('../data/', import.meta.url);
+const run = promisify(execFile);
 const json = async url => {
-  const r = await fetch(url, { signal: AbortSignal.timeout(45000) });
+  let r;
+  try { r = await fetch(url, { signal: AbortSignal.timeout(45000) }); }
+  catch (error) {
+    // GitHub runners occasionally fail Undici's connection establishment to the
+    // weather host. Curl uses the same public endpoint and network, without a proxy.
+    // Do not retry HTTP refusals or quotas through another transport.
+    if (!process.env.GITHUB_ACTIONS || new URL(url).hostname !== 'api.open-meteo.com') throw error;
+    const result = await run('curl', ['--ipv4','--silent','--show-error','--connect-timeout','15','--max-time','45','--write-out','\n%{http_code}',url], { maxBuffer: 8000000 });
+    const at = result.stdout.lastIndexOf('\n'), status=Number(result.stdout.slice(at+1));
+    if(status!==200) { const failure=new Error('Open-Meteo HTTP '+status);if(status===429)failure.retryAt=Date.now()+3600000;throw failure; }
+    return JSON.parse(result.stdout.slice(0,at));
+  }
   if (!r.ok) { const error = new Error(`HTTP ${r.status}`); if (r.status === 429) { const after = r.headers.get('Retry-After'); error.retryAt = Number.isFinite(Number(after)) && after ? Date.now() + Number(after)*1000 : Date.parse(after) || Date.now()+3600000; } throw error; }
   return r.json();
 };

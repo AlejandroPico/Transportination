@@ -2,7 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { aircraft, globalAircraft, satelliteElements, trains, fetchJson } from './providers.mjs';
+import { aircraft, aircraftTrack, globalAircraft, satelliteElements, trains, fetchJson } from './providers.mjs';
 import { createAisFeed } from './ais.mjs';
 try { process.loadEnvFile?.(); } catch (e) { if (e.code !== 'ENOENT') throw e; }
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -13,7 +13,10 @@ async function cached(key, ttl, get) {
   if (entry && Date.now() - entry.at < ttl) return entry.data;
   if (inFlight.has(key)) return inFlight.get(key);
   const promise = get().then(data => {
-    if (cache.size >= 64) { const expendable = [...cache.keys()].find(k => k.startsWith('search:') || k.startsWith('air:')); if (expendable) cache.delete(expendable); }
+    if (cache.size >= 64) {
+      const expendable = [...cache.keys()].find(k => k.startsWith('search:') || k.startsWith('air:') || k.startsWith('track:'));
+      if (expendable) cache.delete(expendable);
+    }
     cache.set(key, { at: Date.now(), data }); return data;
   }).finally(() => inFlight.delete(key));
   inFlight.set(key, promise); return promise;
@@ -29,8 +32,13 @@ export function createServer() {
       if (origin && allowed.includes(origin)) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); }
       if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, OPTIONS' }); return res.end(); }
       if (req.method !== 'GET') return json(res, 405, { error: 'Método no permitido' });
-      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.4.0', regionRefreshMs: 5000, worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, ships: ais.packet().status });
-      if (url.pathname === '/api/aircraft/world') return json(res, 200, await cached('air-world', process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 90000 : 900000, globalAircraft));
+      if (url.pathname === '/api/status') return json(res, 200, { mode: 'live', version: '0.5.0', regionRefreshMs: 5000, worldRefreshMs: process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 120000 : 900000, ships: ais.packet().status });
+      if (url.pathname === '/api/aircraft/world') return json(res, 200, await cached('air-world', process.env.OPENSKY_CLIENT_ID && process.env.OPENSKY_CLIENT_SECRET ? 120000 : 900000, globalAircraft));
+      if (url.pathname === '/api/aircraft/track') {
+        const code = url.searchParams.get('icao24')?.toLowerCase();
+        if (!/^[0-9a-f]{6}$/.test(code || '')) return json(res, 400, { error: 'ICAO24 inválido' });
+        return json(res, 200, await cached('track:' + code, 600000, () => aircraftTrack(code)));
+      }
       if (url.pathname === '/api/aircraft') {
         const lat = Number(url.searchParams.get('lat')), lon = Number(url.searchParams.get('lon'));
         if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return json(res, 400, { error: 'Coordenadas inválidas' });

@@ -80,9 +80,9 @@ export async function collectSchedules(now = Date.now()) {
   const result = { journeys: [], stations: [], shapes: {}, fetchedAt: now, errors: [] };
   // Sequential processing keeps the large national stop-time tables out of memory together.
   for (const config of sources) {
-    const target = new URL(config.key + '.json', cacheDir); let packet;
+    const target = new URL(config.key + '.json', cacheDir); let packet, saved;
     try {
-      try { const saved = JSON.parse(await readFile(target, 'utf8')); if (saved.day === days[1]) packet = saved.packet; } catch { /* First collection of the day. */ }
+      try { saved = JSON.parse(await readFile(target, 'utf8')); if (saved.day === days[1]) packet = saved.packet; } catch { /* First collection of the day. */ }
       if (!packet) {
         let body;
         if (process.env.GTFS_RESEARCH === '1') body = await readFile(new URL('../artifacts/gtfs/' + config.key + '.zip', import.meta.url));
@@ -96,7 +96,15 @@ export async function collectSchedules(now = Date.now()) {
         await writeFile(target, JSON.stringify({ day: days[1], packet }));
       }
       result.journeys.push(...packet.journeys); result.stations.push(...packet.stations); Object.assign(result.shapes, packet.shapes);
-    } catch (e) { result.errors.push({ source: config.source, message: e.message }); }
+    } catch (e) {
+      // Yesterday's parsed GTFS includes tomorrow's services and their real
+      // calendar dates. Retain only that dated packet if today's download fails;
+      // never shift yesterday's trains to invented departure dates.
+      if (saved?.day === days[0] && saved.packet) {
+        result.journeys.push(...saved.packet.journeys); result.stations.push(...saved.packet.stations); Object.assign(result.shapes, saved.packet.shapes);
+        result.errors.push({ source: config.source, message: 'Descarga diaria: ' + e.message + '. Se conserva el horario publicado ayer con sus fechas originales.' });
+      } else result.errors.push({ source: config.source, message: e.message });
+    }
   }
   // Publish full routes for journeys intersecting this window; retain all network stations.
   result.journeys = result.journeys.filter(j => j.stops[0].departure < now + 14400000 && j.stops.at(-1).arrival > now - 7200000);

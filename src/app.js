@@ -1,14 +1,15 @@
-import { isVisible, ageSeconds, searchVehicles, restoreFilters, mergeAircraft, normalizeSatellites, normalizeAircraft } from './model.js?v=0.4';
-import { CATEGORY, KIND, markerSvg } from './catalog.js?v=0.4';
-import { BASES, baseProvider, esriProvider, nasaProvider } from './layers.js?v=0.4';
-import { observationTween, interpolate, journeyProgress, distance } from './motion.js?v=0.4';
-import { RailEngine } from './rail-engine.js?v=0.4';
-import { finnishRail, northAmericanRail } from './rail.js?v=0.4';
-import { Aircraft3D, aircraftMesh } from './aircraft-3d.js?v=0.4';
-import { AviationView } from './aviation.js?v=0.4';
-import { WeatherView, SCALES } from './weather.js?v=0.4';
-import { ENTUR_QUERY, enturRail } from './entur.js?v=0.4';
-import { RouteView } from './routes.js?v=0.4';
+import { isVisible, ageSeconds, searchVehicles, restoreFilters, mergeAircraft, normalizeSatellites, normalizeAircraft } from './model.js?v=0.5';
+import { CATEGORY, KIND, markerSvg } from './catalog.js?v=0.5';
+import { BASES, baseProvider, esriProvider, nasaProvider } from './layers.js?v=0.5';
+import { observationTween, interpolate, journeyProgress, distance } from './motion.js?v=0.5';
+import { RailEngine } from './rail-engine.js?v=0.5';
+import { finnishRail, northAmericanRail } from './rail.js?v=0.5';
+import { Aircraft3D, aircraftMesh } from './aircraft-3d.js?v=0.5';
+import { AviationView, AIRPORT_TYPES } from './aviation.js?v=0.5';
+import { WeatherView, SCALES } from './weather.js?v=0.5';
+import { ENTUR_QUERY, enturRail } from './entur.js?v=0.5';
+import { RouteView } from './routes.js?v=0.5';
+import { MarineClient } from './marine.js?v=0.5';
 const $ = id => document.getElementById(id);
 const $$ = q => [...document.querySelectorAll(q)];
 const HOME = { lon: 5, lat: 24, height: 19000000 };
@@ -22,6 +23,7 @@ const colors = Object.fromEntries(Object.entries(CATEGORY).map(([key, c]) => [ke
 let base = saved.version >= 2 && BASES.some(([key]) => key === saved.base) ? saved.base : 'satellite';
 let viewer, C, apiRoot = '', mode = 'snapshot', activePanel, selected, worker, workerLoaded = false, morphing = false;
 let globalAir = [], regionalAir = [], satellites = [], satellitePacket, orbitTime, noticeTimer, searchSequence = 0, lastSearch = 0;
+let globalSea = [], regionalSea = [], marineClient, marineState = '';
 const items = { air: [], rail: [], sea: [], space: [] }, packets = {}, errors = {}, stores = {}, symbols = new Map(), images = new Map(), busy = new Set();
 let baseLayer, referenceLayer, railwayLayer, radarLayer, radarTime, cloudLayers = [], cloudTimes = [], lastRegion = '';
 let worldRefreshMs = 900000;
@@ -30,13 +32,16 @@ let routeView, stationStore, railwayPacket, stationSymbols = new Map(), osmStati
 let fiMetadata, fiTimetable, fiTimetableAt = 0, naMetadata, stationRequest = 0, stationTimer, lastFollow = 0, lastFiPoll = 0, lastNaPoll = 0;
 let directCredit, lastDirectPoll = 0, emptyDirect = 0;
 let detailKey = '';
-let aircraft3D, aviationView, weatherView, weatherLoaded = false, weatherPacketAt = 0, weatherTimer, aviationTimer, charts = {}, lastNoPoll = 0, airHistoryAt = 0;
+let aircraft3D, aviationView, weatherView, weatherLoaded = false, weatherPacketAt = 0, weatherTimer, aviationTimer, lastNoPoll = 0, airHistoryAt = new Map();
 const metadata = new Map(), labelPreferences = saved.labels || {}, aviationPreferences = saved.aviation || {};
 const infrastructureKeys = ['airports','runways','navaids','atc'];
+const airportTypes=Object.fromEntries(Object.keys(AIRPORT_TYPES).map(key=>[key,saved.airportTypes?.[key]!==false]));
+$('airports-opacity').closest('label').insertAdjacentHTML('afterend','<div id="airport-types" class="airport-types">'+Object.entries(AIRPORT_TYPES).map(([key,type])=>'<label class="check-row"><input data-airport-type="'+key+'" type="checkbox" '+(airportTypes[key]?'checked':'')+'><span>'+type.label+'</span></label>').join('')+'<p class="small-note">Tamaños del catálogo OurAirports; no acreditan vuelos internacionales ni volumen de tráfico.</p></div>');
+$$('[data-airport-type]').forEach(input=>input.addEventListener('change',()=>{airportTypes[input.dataset.airportType]=input.checked;renderAviation();persist();}));
 let legendVisible = saved.legend === true;
 let symbolSize = Number.isFinite(saved.symbolSize) ? Math.max(16, Math.min(36, saved.symbolSize)) : 24;
 function persist() {
-  try { localStorage.setItem('transportination.preferences', JSON.stringify({ version: 4, labels: labelPreferences, aviation: Object.fromEntries(infrastructureKeys.map(key => [key, { enabled: $(key).checked, color: $(key+'-color').value, opacity: +$(key+'-opacity').value }])), airModels: $('air-models').checked, directAir: $('direct-air').checked, weatherField: $('weather-field').value, weatherOpacity: +$('weather-opacity').value, satelliteProduct: $('satellite-product').value, filters, colors, base, legend: legendVisible, symbolSize, railways: $('railways').checked, railOpacity: +$('rail-opacity').value, stations: $('stations').checked, stationOpacity: +$('station-opacity').value, estimates: $('schedule-estimates').checked, routeOpacity: +$('route-opacity').value, radar: $('radar').checked, clouds: $('clouds').checked })); } catch { /* Private browsing can disable storage. */ }
+  try { localStorage.setItem('transportination.preferences', JSON.stringify({ version: 5, airportTypes, labels: labelPreferences, airways: { low: $('ifr-low').checked, high: $('ifr-high').checked, other: $('ifr-other').checked, opacity: +$('chart-opacity').value, lowColor: $('ifr-low-color').value, highColor: $('ifr-high-color').value, otherColor: $('ifr-other-color').value }, aviation: Object.fromEntries(infrastructureKeys.map(key => [key, { enabled: $(key).checked, color: $(key+'-color').value, opacity: +$(key+'-opacity').value }])), airModels: $('air-models').checked, directAir: $('direct-air').checked, weatherField: $('weather-field').value, weatherOpacity: +$('weather-opacity').value, satelliteProduct: $('satellite-product').value, filters, colors, base, legend: legendVisible, symbolSize, railways: $('railways').checked, railOpacity: +$('rail-opacity').value, stations: $('stations').checked, stationOpacity: +$('station-opacity').value, estimates: $('schedule-estimates').checked, routeOpacity: +$('route-opacity').value, radar: $('radar').checked, clouds: $('clouds').checked })); } catch { /* Private browsing can disable storage. */ }
 }
 function notice(message) { $('notice').textContent = message; $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { $('notice').hidden = true; }, 6500); }
 function openPanel(id) {
@@ -70,7 +75,7 @@ function renderFilters() {
     filters[input.dataset.filter] = input.checked; persist(); refreshVisibility(); updateLegend();
     if (input.dataset.filter === 'space') updateOrbits();
     if (input.dataset.filter === 'air') { renderAviation(); refreshCharts(); }
-    if (input.dataset.filter === 'sea' && filters.sea && mode === 'live') refreshShips();
+    if (input.dataset.filter === 'sea') { marineClient?.setActive(filters.sea && !document.hidden); if (filters.sea) refreshShips(); }
     if (input.dataset.filter === 'rail') { renderStations(); if (filters.rail) refreshInternational(); }
   }));
   $$('[data-color]').forEach(input => input.addEventListener('input', () => { colors[input.dataset.color] = input.value; persist(); refreshVisibility(); updateLegend(); if (selected) showDetail(selected); }));
@@ -106,6 +111,9 @@ $('dimension').addEventListener('click', async () => {
   // Fade the projection change while preserving the exact center and viewing height instead.
   $('map').classList.add('switching');
   await new Promise(r => setTimeout(r, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150));
+  // Terrain depth testing has no purpose on the flat projection, and its
+  // billboard depth shaders are very expensive during the projection switch.
+  viewer.scene.globe.depthTestAgainstTerrain = !to2D;
   if (to2D) viewer.scene.morphTo2D(0); else viewer.scene.morphTo3D(0);
   viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(view.lon, view.lat, view.height) });
   $('dimension').querySelector('use').setAttribute('href', to2D ? '#i-globe' : '#i-flat');
@@ -143,7 +151,7 @@ $('air-models').addEventListener('change',()=>{aircraft3D?.update(selected,$('ai
 $('base-labels').addEventListener('change', () => { labelPreferences[base] = $('base-labels').checked; setBase(base); });
 function renderAviation() {
   if (!aviationView) return;
-  const options = { enabled: filters.air, ...Object.fromEntries(infrastructureKeys.map(key => [key,{ enabled: $(key).checked, color: $(key+'-color').value, opacity: +$(key+'-opacity').value }])) };
+  const options = { enabled: filters.air, airportTypes, airways: { low: $('ifr-low').checked, high: $('ifr-high').checked, other: $('ifr-other').checked, opacity: +$('chart-opacity').value, lowColor: $('ifr-low-color').value, highColor: $('ifr-high-color').value, otherColor: $('ifr-other-color').value }, ...Object.fromEntries(infrastructureKeys.map(key => [key,{ enabled: $(key).checked, color: $(key+'-color').value, opacity: +$(key+'-opacity').value }])) };
   aviationView.render(options, center());
 }
 for (const key of infrastructureKeys) {
@@ -153,15 +161,14 @@ for (const key of infrastructureKeys) {
   if (Number.isFinite(pref?.opacity)) $(key+'-opacity').value = Math.max(0,Math.min(1,pref.opacity));
   for (const id of [key,key+'-color',key+'-opacity']) $(id).addEventListener('input', () => { clearTimeout(aviationTimer); aviationTimer = setTimeout(renderAviation,100); persist(); });
 }
-function refreshCharts() {
-  if (!viewer) return;
-  for (const [id,service] of [['ifr-low','IFR_AreaLow'],['ifr-high','IFR_High']]) {
-    if ($(id).checked && !charts[id]) charts[id]=viewer.imageryLayers.addImageryProvider(new C.UrlTemplateImageryProvider({url:`https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`,maximumLevel:12,rectangle:C.Rectangle.fromDegrees(-180,10,-50,75),credit:new C.Credit('<a href="https://www.faa.gov/data/aero_data">FAA · cartas IFR</a>',false)}));
-    if(charts[id]) { charts[id].show=filters.air&&$(id).checked; charts[id].alpha=+$('chart-opacity').value; }
-  }
-  viewer.scene.requestRender();
+function refreshCharts() { renderAviation(); persist(); }
+for (const level of ['low', 'high', 'other']) {
+  $('ifr-' + level).checked = saved.airways?.[level] === true;
+  const color = saved.airways?.[level + 'Color'];
+  if (/^#[\da-f]{6}$/i.test(color)) $('ifr-' + level + '-color').value = color;
 }
-for(const id of ['ifr-low','ifr-high','chart-opacity']) $(id).addEventListener('input',refreshCharts);
+if (Number.isFinite(saved.airways?.opacity)) $('chart-opacity').value = saved.airways.opacity;
+for (const id of ['ifr-low','ifr-high','ifr-other','ifr-low-color','ifr-high-color','ifr-other-color','chart-opacity']) $(id).addEventListener('input',refreshCharts);
 $('satellite-product').value = ['world','meteosat','indian'].includes(saved.satelliteProduct) ? saved.satelliteProduct : 'world';
 $('satellite-product').addEventListener('change',()=>{persist();refreshClouds();});
 $('weather-field').value = ['wind','rain','temperature'].includes(saved.weatherField) ? saved.weatherField : '';
@@ -191,10 +198,25 @@ async function requestAircraftMetadata(item) {
   }catch{/* Unknown records remain unavailable. */}
 }
 async function loadAirHistory() {
-  if(selected?.kind!=='air'||busy.has('air-history')||Date.now()-airHistoryAt<60000) return;
-  busy.add('air-history');
-  try { routeView.importHistory(await getJson('./data/air-tracks.json')); airHistoryAt=Date.now(); drawRoute(); }
-  catch {/* First edition has no earlier samples. */} finally {busy.delete('air-history');}
+  if (selected?.kind !== 'air' || !/^[0-9a-f]{6}$/i.test(selected.code)) return;
+  const item = selected, code = item.code.toLowerCase(), key = 'air-history:' + code;
+  if (busy.has(key) || Date.now() - (airHistoryAt.get(code) || 0) < 600000) return;
+  busy.add(key);
+  try {
+    let history;
+    try { history = await getJson('./data/air-history/' + code.slice(0, 2) + '.json'); }
+    catch { history = await getJson('./data/air-tracks.json'); }
+    routeView.importHistory(history); airHistoryAt.set(code, Date.now());
+    if (selected?.id === item.id) drawRoute();
+    if (mode === 'live') {
+      try {
+        const detailed = await getJson(api('aircraft/track?icao24=' + code));
+        routeView.importHistory(detailed);
+        if (selected?.id === item.id) drawRoute();
+      } catch { /* The dated observations remain available if the experimental trajectory is unavailable. */ }
+    }
+  } catch { /* First edition has no earlier samples. */ }
+  finally { busy.delete(key); }
 }
 $('railways').checked = saved.railways !== false;
 $('rail-opacity').value = saved.version >= 3 && Number.isFinite(saved.railOpacity) ? Math.max(0, Math.min(1, saved.railOpacity)) : 1;
@@ -302,7 +324,7 @@ function showDetail(item) {
     next = byCode >= 0 ? byCode : stops.reduce((best, s, i) => distance(item, s) < distance(item, stops[best]) ? i : best, 0);
   }
   const location = j && next !== undefined ? (estimated && progress?.atStation ? 'En ' + stops[next].name : 'Tramo de ' + stops[Math.max(0, next - 1)].name + ' a ' + stops[next].name) : null;
-  const fields = [['Indicativo de llamada', item.kind === 'air' ? item.name : null], ['Indicativo IATA', item.flightNumber], ['Vuelo comercial', item.kind === 'air' ? 'Número comercial no publicado por esta fuente' : null], ['Nivel de vuelo', Number.isFinite(item.flightLevel) ? 'FL' + String(item.flightLevel).padStart(3,'0') + ' · altitud barométrica estándar' : null], ['Velocidad vertical', Number.isFinite(item.verticalRate) ? number(item.verticalRate * 196.8504) + ' ft/min' : null], ['Squawk', item.squawk], ['Fabricante', item.manufacturer], ['Modelo publicado', item.modelName], ['Titular registrado', item.owner], ['Antigüedad', item.kind === 'air' ? 'Sin fecha de fabricación publicada' : null], ['Origen', item.origin], ['Identificador', item.code], ['Matrícula', item.registration], ['Modelo', item.model], ['País', item.country], ['Operador', item.operator], ['Viaje', j ? j.code : item.trip], ['Situación', location], ['Destino', item.destination], ['IMO', item.imo], ['Rumbo', Number.isFinite(item.bearing) ? number(item.bearing) + '°' : null]];
+  const fields = [['Indicativo de llamada', item.kind === 'air' ? item.name : null], ['Indicativo IATA', item.flightNumber], ['Vuelo comercial', item.kind === 'air' ? 'Número comercial no publicado por esta fuente' : null], ['Nivel de vuelo', Number.isFinite(item.flightLevel) ? 'FL' + String(item.flightLevel).padStart(3,'0') + ' · altitud barométrica estándar' : null], ['Velocidad vertical', Number.isFinite(item.verticalRate) ? number(item.verticalRate * 196.8504) + ' ft/min' : null], ['Squawk', item.squawk], ['Fabricante', item.manufacturer], ['Modelo publicado', item.modelName], ['Titular registrado', item.owner], ['Antigüedad', item.kind === 'air' ? 'Sin fecha de fabricación publicada' : null], ['Origen', item.origin], ['Identificador', item.code], ['Matrícula', item.registration], ['Modelo', item.model], ['País', item.country], ['Operador', item.operator], ['Viaje', j ? j.code : item.trip], ['Situación', location], ['Destino', item.destination], ['Indicativo AIS', item.callSign], ['Tipo AIS', item.shipType], ['IMO', item.imo], ['Rumbo', Number.isFinite(item.bearing) ? number(item.bearing) + '°' : null]];
   if (isSpace) fields.push(['NORAD', item.code], ['Inclinación orbital', number(item.inclination) + '°'], ['Época orbital', date(Date.parse(item.epoch))]);
   const stamp = estimated ? 'Horario consultado: ' + date(item.scheduleAt) : isSpace ? 'Calculada: ' + date(item.observedAt) : (item.timestampScope === 'feed' ? 'Fecha del conjunto: ' : 'Posición recibida: ') + date(item.observedAt);
   const old = !estimated && !isSpace && ageSeconds(item) > (item.kind === 'air' ? 60 : 120);
@@ -328,7 +350,7 @@ function showDetail(item) {
     const index = stops.indexOf(s), past = index < next, upcoming = index === next;
     return '<li class="' + (upcoming ? 'next' : past ? 'passed' : '') + '"><button data-stop="' + index + '"><span>' + esc(s.name) + '</span><time>' + stopTime(s.departure, j.timezone || s.timezone) + '</time></button><small>' + (upcoming ? 'Próxima / estación actual' : past ? 'Anterior' : 'Por delante') + (s.platform ? ' · vía ' + esc(s.platform) : '') + '</small></li>';
   }).join('') + '</ol><p class="small-note">' + (j.geometry ? 'Trazado ferroviario publicado en GTFS.' : 'Recorrido aproximado entre estaciones publicadas; no se dispone de la geometría exacta.') + '</p></section>' : '';
-  const routeNote = item.kind === 'air' ? (aircraftMesh(item.model) ? '<p class="small-note">Modelo 3D esquemático de la familia '+esc(item.model)+'. Geometría ilustrativa; no reproduce la librea ni todos los detalles del ejemplar.</p>' : '') + '<p class="small-note">Estela de posiciones recibidas: blanco en tierra → azul → cian → verde → amarillo → naranja → rojo → violeta. Los segmentos discontinuos unen instantáneas espaciadas; no reconstruyen las maniobras entre muestras.</p>' : item.kind === 'sea' ? '<p class="small-note">La estela conserva observaciones AIS nuevas. La ruta futura solo se mostrará cuando la fuente la publique.</p>' : '';
+  const routeNote = item.kind === 'air' ? (aircraftMesh(item.model) ? '<p class="small-note">Modelo 3D esquemático de la familia '+esc(item.model)+'. Geometría ilustrativa; no reproduce la librea ni todos los detalles del ejemplar.</p>' : '') + '<p class="small-note">Estela de posiciones recibidas: blanco en tierra → azul → cian → verde → amarillo → naranja → rojo → violeta. Las líneas continuas unen observaciones recibidas; entre instantáneas espaciadas el trazado es aproximado. Se conserva el vuelo disponible hasta 24 horas, sin garantizar recepción desde el despegue. La línea discontinua entre aeropuertos es solo una referencia de origen y destino.</p>' : item.kind === 'sea' ? '<p class="small-note">La estela conserva observaciones AIS nuevas. La ruta futura solo se mostrará cuando la fuente la publique.</p>' : '';
   $('detail').style.setProperty('--vehicle-color', colors[item.category]);
   $('detail').innerHTML = '<header class="panel-head"><span>' + esc(KIND[item.kind]) + '</span><button id="detail-close" aria-label="Cerrar ficha"><svg><use href="#i-close"/></svg></button></header><div class="vehicle-hero"><img src="' + imageFor(item.category) + '" alt=""><div><h2 id="detail-title">' + esc(item.name) + '</h2><p>' + esc(c.label) + '</p></div></div><div class="vehicle-state">' + esc(isSpace ? 'Órbita calculada · SGP4' : estimated ? 'Posición estimada por horario · no GPS' : item.state) + (old ? ' · Posición atrasada' : '') + '</div>' + routeHead + '<div class="metrics"><div><span>' + (isSpace ? 'PERIODO' : 'VELOCIDAD PUBLICADA') + '</span><strong>' + number(isSpace ? item.periodMinutes : item.speed) + '</strong><small>' + (isSpace ? 'min' : 'km/h') + '</small></div><div><span>ALTITUD</span><strong>' + number(item.altitude) + '</strong><small>m</small></div></div><dl class="vehicle-data">' + fields.filter(([, value]) => value !== undefined && value !== null && value !== '').map(([label, value]) => '<div><dt>' + label + '</dt><dd>' + esc(value) + '</dd></div>').join('') + '<div><dt>Latitud / longitud</dt><dd>' + (item.lat?.toFixed(5) ?? '—') + '° / ' + (item.lon?.toFixed(5) ?? '—') + '°</dd></div></dl>' + stopList + routeNote + '<div class="observation"><strong>' + esc(item.source) + '</strong><p>' + esc(stamp) + '</p>' + (estimated ? '<p>Movimiento calculado cada segundo entre los horarios disponibles. Los retrasos publicados se aplican cuando están disponibles; no acredita la ubicación real.</p>' : '') + (isSpace ? '<p>Predicción orbital a partir de elementos publicados; no es telemetría GPS.</p>' : '') + '</div><div class="vehicle-actions"><button id="locate-vehicle" class="text-button"><svg><use href="#i-target"/></svg>Centrar</button><button id="follow-vehicle" class="text-button" aria-pressed="' + follow + '">Seguir movimiento</button>'+ (item.kind==='air'&&aircraftMesh(item.model)?'<button id="inspect-aircraft" class="text-button">Ver modelo 3D</button>':'')+'</div>';
   $('detail-close').addEventListener('click', closeDetail);
@@ -354,7 +376,7 @@ function sourceState(kind) {
   if (kind === 'rail') return 'España, Francia y Austria · horarios; Irlanda · horarios previstos; Finlandia, Noruega, Estados Unidos y Canadá · posiciones publicadas. ' + [errors.rail, errors.fi, errors.na, errors.no, errors.schedules].filter(Boolean).join(' · ');
   if (errors[kind]) return 'La fuente no responde. ' + errors[kind];
   if (kind === 'space') return satellitePacket ? 'CelesTrak · posiciones calculadas con SGP4; elementos: ' + date(satellitePacket.fetchedAt) : 'Cargando elementos orbitales…';
-  if (kind === 'sea' && packets.sea?.status === 'unconfigured') return 'AIS preparado. Falta configurar una clave gratuita en el servidor.';
+  if (kind === 'sea') return 'Fintraffic · AIS regional, principalmente Báltico. ' + (marineState || 'Consultando posiciones publicadas…') + ' ' + (packets.sea?.status === 'unconfigured' ? 'AIS mundial pendiente de activación.' : 'AIS Stream: ' + (packets.sea?.status || 'instantáneas') + '.');
   if (!packets[kind]) return 'Fuente pendiente de conexión.';
   const coverage = kind === 'air' ? 'Mundial · cobertura de receptores' : kind === 'rail' ? 'Renfe y SNCF · horarios; Finlandia, Estados Unidos y Canadá · consultas directas' : 'Mundial · cobertura AIS';
   return coverage + (kind === 'air' && mode === 'snapshot' ? ' · Recepción terrestre incompleta, especialmente sobre océanos y África. Actualización rápida pendiente de servidor; no es Flightradar.' : '') + ' · ' + (mode === 'snapshot' ? 'Instantánea: ' : 'Consulta: ') + date(packets[kind].fetchedAt);
@@ -372,7 +394,7 @@ async function getJson(url, timeout = 30000) {
 }
 const api = path => apiRoot ? apiRoot + '/api/' + path : './api/' + path;
 async function discoverBackend() {
-  try { const status = await getJson('./api/status', 3000); if (status.mode === 'live') { mode = 'live'; worldRefreshMs = status.worldRefreshMs === 90000 ? 90000 : 900000; return; } } catch { /* GitHub Pages has no server. */ }
+  try { const status = await getJson('./api/status', 3000); if (status.mode === 'live') { mode = 'live'; worldRefreshMs = [90000,120000,900000].includes(status.worldRefreshMs) ? status.worldRefreshMs : 900000; return; } } catch { /* GitHub Pages has no server. */ }
   try {
     const config = await getJson('./data/config.json', 4000);
     if (config.liveApiUrl) {
@@ -380,7 +402,7 @@ async function discoverBackend() {
       if (url.protocol !== 'https:' || url.username || url.password) return;
       const candidate = url.href.replace(/\/$/, '');
       const status = await getJson(candidate + '/api/status', 15000);
-      if (status.mode === 'live') { apiRoot = candidate; mode = 'live'; worldRefreshMs = status.worldRefreshMs === 90000 ? 90000 : 900000; }
+      if (status.mode === 'live') { apiRoot = candidate; mode = 'live'; worldRefreshMs = [90000,120000,900000].includes(status.worldRefreshMs) ? status.worldRefreshMs : 900000; }
     }
   } catch { /* Static snapshots remain useful if the optional server is offline. */ }
 }
@@ -393,7 +415,7 @@ async function refreshSnapshot() {
       packets[kind] = feed[kind]; errors[kind] = feed.errors?.find(e => e.source === kind)?.message || '';
       if (kind === 'air') { globalAir = feed.air.items; syncSymbols('air', mergeAircraft(globalAir, regionalAir)); }
       else if (kind === 'rail') { railEngine.receive(feed.rail.items, 'rail:commuter:'); railEngine.receive(feed.rail.items, 'rail:longDistance:'); syncRail(); }
-      else syncSymbols(kind, feed[kind].items);
+      else { globalSea = feed[kind].items; syncSea(); }
     }
   } catch (e) { notice('No se ha podido cargar la instantánea: ' + e.message); } finally { busy.delete('snapshot'); updateStatus(); }
 }
@@ -440,9 +462,10 @@ async function refreshRail() {
 }
 async function refreshShips() {
   if (mode !== 'live' || busy.has('sea') || !filters.sea || document.hidden) return; busy.add('sea');
-  try { packets.sea = await getJson(api('ships')); errors.sea = ''; syncSymbols('sea', packets.sea.items); }
+  try { packets.sea = await getJson(api('ships')); errors.sea = ''; globalSea = packets.sea.items; syncSea(); }
   catch (e) { errors.sea = e.message; } finally { busy.delete('sea'); updateStatus(); }
 }
+function syncSea() { syncSymbols('sea', mergeAircraft(globalSea, regionalSea)); }
 function syncRail() {
   const trains = railEngine.positions().filter(i => $('schedule-estimates').checked || i.positionMode !== 'schedule');
   syncSymbols('rail', trains);
@@ -572,7 +595,7 @@ async function loadSatellites() {
     try { satellitePacket = await getJson(mode === 'live' ? api('satellites') : './data/satellites.json'); }
     catch (e) { if (mode !== 'live') throw e; satellitePacket = await getJson('./data/satellites.json'); }
     satellites = normalizeSatellites(satellitePacket.records); items.space = satellites;
-    worker = new Worker(new URL('./orbit-worker.js?v=0.4', import.meta.url), { type: 'module' });
+    worker = new Worker(new URL('./orbit-worker.js?v=0.5', import.meta.url), { type: 'module' });
     worker.onmessage = e => {
       if (e.data.type === 'route') { routeView.orbit = { id: e.data.id, points: e.data.points }; if (selected?.id === e.data.id) drawRoute(); return; }
       if (e.data.type !== 'positions' || !filters.space) return;
@@ -620,15 +643,17 @@ async function init() {
     C.CreditDisplay.cesiumCredit = new C.Credit('<span></span>', false);
     viewer = new C.Viewer('map', { baseLayer: false, terrainProvider: new C.EllipsoidTerrainProvider(), animation: false, timeline: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, requestRenderMode: true, maximumRenderTimeChange: Infinity, scene3DOnly: false });
     viewer.scene.globe.baseColor = C.Color.fromCssColorString('#101d27'); viewer.scene.globe.enableLighting = false;
+    viewer.scene.globe.depthTestAgainstTerrain = true;
     viewer.scene.backgroundColor = C.Color.fromCssColorString('#080f16'); viewer.scene.globe.maximumScreenSpaceError = 1.5;
     viewer.scene.skyBox.show = false;
     viewer.scene.postProcessStages.fxaa.enabled = true;
     viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(HOME.lon, HOME.lat, HOME.height) });
     Object.keys(KIND).forEach(kind => { stores[kind] = viewer.scene.primitives.add(new C.BillboardCollection({ scene: viewer.scene })); });
     aircraft3D = new Aircraft3D(C,viewer); aviationView = new AviationView(C, viewer); weatherView = new WeatherView(C, viewer);
-    aviationView.load().then(error => { $('aviation-note').textContent=error ? 'Catálogo: '+error : 'OurAirports · catálogo abierto; FAA · límites de cobertura parcial.'; renderAviation(); });
+    viewer.scene.preRender.addEventListener(()=>aviationView.updateVisibility());
+    aviationView.load().then(error => { $('aviation-note').textContent=error ? 'Catálogo: '+error : 'OurAirports · catálogo mundial. FAA · límites y aerovías de cobertura parcial. © DFS · Alemania · CC BY 4.0. España y otros países: regiones y aerovías pendientes de una fuente reutilizable.'; renderAviation(); });
     routeView = new RouteView(C, viewer); stationStore = viewer.scene.primitives.add(new C.BillboardCollection({ scene: viewer.scene }));
-    [["https://cesium.com/","CesiumJS"],["https://opensky-network.org/data/api","OpenSky Network"],["https://amtraker.com/","Amtraker · ODC-By"],["https://www.digitraffic.fi/en/railway-traffic/","Fintraffic · CC BY 4.0"],["https://data.renfe.com/","Renfe · CC BY 4.0"],["https://transport.data.gouv.fr/datasets/horaires-sncf","SNCF · ODbL"],["https://ourairports.com/data/","OurAirports · dominio público"],["https://www.faa.gov/data/aero_data","FAA · datos aeronáuticos"],["https://developer.entur.org/pages-real-time-vehicle/","Entur · NLOD"],["https://data.oebb.at/de/datensaetze~soll-fahrplan-gtfs~","ÖBB-Personenverkehr AG · CC BY 4.0 · horarios transformados en posiciones estimadas"],["https://api.irishrail.ie/realtime/","Irish Rail · horarios previstos"],["https://www.adsbdb.com/","adsbdb · metadatos de aeronaves y rutas"]].forEach(([url,label])=>viewer.scene.frameState.creditDisplay.addStaticCredit(new C.Credit(`<a href="${url}">${label}</a>`,false)));
+    [["https://www.dfs.de/homepage/de/services/geo-daten/","© DFS · INSPIRE · Alemania · CC BY 4.0"],["https://www.digitraffic.fi/en/marine-traffic/","Fintraffic / Digitraffic · AIS · CC BY 4.0"],["https://www.adsb.lol/docs/open-data/api/","ADSB.lol · ODbL 1.0"],["https://cesium.com/","CesiumJS"],["https://opensky-network.org/data/api","OpenSky Network"],["https://amtraker.com/","Amtraker · ODC-By"],["https://www.digitraffic.fi/en/railway-traffic/","Fintraffic · CC BY 4.0"],["https://data.renfe.com/","Renfe · CC BY 4.0"],["https://transport.data.gouv.fr/datasets/horaires-sncf","SNCF · ODbL"],["https://ourairports.com/data/","OurAirports · dominio público"],["https://www.faa.gov/data/aero_data","FAA · datos aeronáuticos"],["https://developer.entur.org/pages-real-time-vehicle/","Entur · NLOD"],["https://data.oebb.at/de/datensaetze~soll-fahrplan-gtfs~","ÖBB-Personenverkehr AG · CC BY 4.0 · horarios transformados en posiciones estimadas"],["https://api.irishrail.ie/realtime/","Irish Rail · horarios previstos"],["https://www.adsbdb.com/","adsbdb · metadatos de aeronaves y rutas"]].forEach(([url,label])=>viewer.scene.frameState.creditDisplay.addStaticCredit(new C.Credit(`<a href="${url}">${label}</a>`,false)));
     const creditTitle=document.querySelector('.cesium-credit-lightbox-title');if(creditTitle)creditTitle.textContent='Fuentes y atribuciones';
     const initialCredit=new C.Credit('<a href="https://amtraker.com/">Amtraker · ODC-By</a>',true); viewer.scene.frameState.creditDisplay.addStaticCredit(initialCredit); document.addEventListener('pointerdown',()=>{viewer.scene.frameState.creditDisplay.removeStaticCredit(initialCredit);viewer.scene.requestRender();},{once:true});
     setBase(base);
@@ -641,10 +666,13 @@ async function init() {
     await discoverBackend();
     // An initial world snapshot avoids a blank globe while live providers answer.
     await refreshSnapshot();
+    marineClient = new MarineClient(fresh => { regionalSea = fresh; syncSea(); drawRoute(); updateStatus(); }, state => { marineState = state; updateStatus(); });
+    marineClient.setActive(filters.sea && !document.hidden);
+    document.addEventListener('visibilitychange', () => marineClient.setActive(filters.sea && !document.hidden));
     await loadRailway(); refreshInternational();
     if (mode === 'live') await Promise.allSettled([refreshWorld(), refreshRail(), refreshShips()]);
     loadSatellites(); refreshRadar(); refreshClouds(); refreshForecast(); updateStatus();
-    setInterval(() => { if (!document.hidden) { updateStatus(); if (selected && selected.kind !== 'space') showDetail(selected); } }, 10000);
+    setInterval(() => { if (!document.hidden) { updateStatus(); if (selected && selected.kind !== 'space') { showDetail(selected); loadAirHistory(); } } }, 10000);
     setInterval(() => { if (!document.hidden && mode === 'snapshot') refreshSnapshot(); }, 30000);
     setInterval(() => { if (!document.hidden) refreshRail(); }, 20000);
     setInterval(() => { if (!document.hidden) { refreshRegion(); refreshInternational(); } }, 5000);

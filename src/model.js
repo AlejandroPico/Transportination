@@ -1,4 +1,4 @@
-import { CATEGORY, aircraftCategory, satelliteCategory } from './catalog.js?v=0.4';
+import { CATEGORY, aircraftCategory, satelliteCategory } from './catalog.js?v=0.5';
 export const validPosition = (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 const finite = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
 export function normalizeAircraft(data, receivedAt = Date.now(), source = 'ADSB.lol') {

@@ -2,17 +2,17 @@
 
 Un atlas para explorar el movimiento de la Tierra: aviación, ferrocarril, navegación y órbitas, con mapas combinables y vistas 2D/3D.
 
-## Versión 0.4.0 · 3 de octubre de 2026
+## Versión 0.5.0 · 3 de octubre de 2026
 
-- Aeropuertos, radioayudas y pistas del catálogo mundial OurAirports, con símbolos individuales, colores e intensidad. Límites FIR/ARTCC/ACC y cartas IFR baja/alta de la FAA: **cobertura parcial**, principalmente estadounidense; no representan sectores de todas las torres ni cartas mundiales.
-- Historial aéreo observado de dos horas entre publicaciones. Blanco en tierra, azules bajos y arcoíris hasta violeta alto. **Las muestras espaciadas se unen con segmentos discontinuos**, sin reconstruir maniobras ni acreditar un recorrido continuo. La ficha añade indicativo, matrícula, modelo, fabricante, indicativo IATA, FL, velocidad vertical y squawk cuando están publicados. Sin fecha de fabricación no se inventa la antigüedad.
-- Ocho mallas 3D originales esquemáticas: familias 737, A320, 747, A380, 777, A350, turbohélice y monomotor. No son réplicas exactas ni tienen libreas. Los tipos desconocidos conservan su símbolo. Centrar y seguir movimiento son controles distintos.
-- Recepción directa opcional AvioADSB, sin cuenta: máximo 100 NM, consulta cada 10 segundos, **100 consultas/día por red** y red de receptores pequeña. Interpolación entre observaciones recientes; parada ante cuota agotada o tres respuestas vacías. No permite un radar mundial continuo. El servidor ADSB.lol preparado sigue siendo la vía para consultas regionales frecuentes sin esa cuota.
-- EUMETSAT: mosaico infrarrojo mundial de tres horas, Meteosat de quince minutos para Europa/África o el Índico, con fecha visible. Sustituye la pesada consulta de capacidades NASA y el montaje parcial anterior. RainViewer muestra el último radar disponible, con cobertura y resolución propias de la fuente.
-- Temperatura, precipitación y viento a 10 m con Open-Meteo: colores, dirección, intensidad y selección horaria. **Previsiones interpoladas sobre una malla de 5° entre 80° S y 80° N**, no observaciones ni resolución de Windy. Recogida cada seis horas: 2.376 localizaciones por colección, dentro de la cuota diaria gratuita. Celdas ausentes transparentes.
-- Noruega: posiciones Entur. Austria: horarios ÖBB de 2026. Irlanda: tiempos previstos de Irish Rail, derivados de señalización y horarios, con cobertura desigual. Estimaciones identificadas y estaciones/recorridos. La geometría austríaca de gran tamaño queda pendiente; allí se usan tramos aproximados entre estaciones.
-- Etiquetas activables por fondo con preferencias independientes. Carreteras de OpenStreetMap tiene etiquetas integradas en el raster; no permite ocultarlas por separado.
-- Mapa de pantalla completa, coordenadas y hora flotantes, i circundada y créditos en el diálogo nativo. Se mantiene atribución breve para fuentes que la exigen. Amtraker muestra su crédito al inicio y permite recogerlo tras la primera interacción.
+- Aeropuertos y radioayudas ocultos correctamente por la Tierra en 3D. Símbolos de aeropuerto diferenciados y filtros por tamaño/tipo publicado, sin deducir categoría internacional o tráfico.
+- Aerovías vectoriales sobre cualquier fondo: FAA (EE. UU. y rutas publicadas del Pacífico), bajas/altas según su clasificación; DFS (Alemania), sin nivel clasificado en este conjunto. Áreas de control FIR/ARTCC/ACC de la FAA y FIR/UIR/CTR/CTA/TMA de DFS. **Cobertura parcial, no mundial**. ENAIRE no se redistribuye: no se ha verificado autorización compatible con su aviso legal.
+- Historial de observaciones aéreas conservado durante 24 horas entre publicaciones, servido por pequeños grupos de transpondedores para evitar descargarlo entero en móvil. Estelas **continuas**, coloreadas por altitud: blanco en tierra, azules bajos, arcoíris hasta violeta alto. Los enlaces entre instantáneas espaciadas son aproximados. Se separan despegues del mismo indicativo; no se garantiza observar desde el despegue ni reconstruir maniobras. La referencia origen/destino sigue discontinua.
+- Servidor preparado para consultar la trayectoria experimental del vuelo seleccionado en OpenSky, con caché de diez minutos y protección de cuota. Se conserva el historial local si la trayectoria no está disponible. La recepción regional ADSB.lol sigue cada cinco segundos al activar el servidor.
+- **Barcos reales sin cuenta**: Fintraffic/Digitraffic, principalmente Báltico. REST inicial y MQTT WebSocket directo, actualizando símbolos al llegar observaciones nuevas. Tipo AIS, MMSI, IMO, indicativo, destino, velocidad y fecha cuando están publicados. Colores y símbolos personalizables por categoría. Solo clase A y sin pesqueros en esta fuente; AIS Stream mundial permanece pendiente de la clave y el servidor del propietario.
+- Conexión marítima suspendida al ocultar la pestaña o desactivar Barcos; reconexión con espera creciente. Las instantáneas antiguas nunca sobrescriben una posición más reciente.
+- Se mantienen modelos 3D esquemáticos por tipo publicado, meteorología fechada, fondos con etiquetas regulables, créditos recogidos en la i y favicon vectorial original en la raíz.
+
+La activación completa está explicada paso a paso en **[ACTIVACION.md](ACTIVACION.md)**. Guardar secretos en GitHub no convierte Pages en un servidor: la actualización aérea frecuente y AIS mundial necesitan también el servicio gratuito preparado.
 
 ### Base ferroviaria
 
@@ -29,7 +29,7 @@ La aviación pasa de una consulta regional española a la cobertura mundial publ
 - Símbolos y colores por categorías publicadas, editables. Aviación ligera/pesada/helicópteros; tipos de barcos; servicios ferroviarios; familias orbitales. Tipos no publicados permanecen sin clasificar. No se inventan generaciones Starlink.
 - Leyenda activable y desactivable; ficha individual con datos disponibles, fecha de observación y fuente.
 - Satélites activos de CelesTrak, cálculo SGP4 en un trabajador separado cada dos segundos, búsqueda por nombre/NORAD. Son posiciones orbitales calculadas, no telemetría recibida.
-- Adaptador mundial AIS Stream preparado en servidor con clave protegida, tipos de barco y reconexión. Sin clave no aparecen barcos inventados.
+- Adaptador mundial AIS Stream preparado en servidor con clave protegida, tipos de barco y reconexión. Sin clave se mantiene AIS regional de Fintraffic; no aparecen barcos mundiales inventados.
 - Cambio de proyección mediante fundido conservando centro y altura. Se evita el recorrido de cámara de Cesium que causaba saltos extremos al cambiar desde una ciudad.
 
 ## Cobertura y actualización
@@ -38,7 +38,7 @@ La aviación pasa de una consulta regional española a la cobertura mundial publ
 
 GitHub Pages aloja archivos estáticos. Actions actualiza la instantánea aérea mundial y ferroviaria aproximadamente cada quince minutos; el navegador busca un nuevo archivo cada treinta segundos. Actions puede retrasarse. Ninguna observación se rejuvenece al descargarla de nuevo. Las estimaciones ferroviarias se calculan aparte y están identificadas; el usuario puede desactivarlas. Los horarios nacionales se descargan una vez al día y se interpretan con sus calendarios y zonas horarias, incluidos servicios nocturnos.
 
-El servidor opcional consulta ADSB.lol en la zona observada cada cinco segundos, Renfe cada veinte segundos y AIS cada cinco segundos. Interpola entre muestras aéreas recientes, sin extrapolar instantáneas viejas. OpenSky mundial se comparte en caché quince minutos sin cuenta, o noventa segundos con credenciales. El complemento regional conserva el resto del mundo. Sin servidor, OpenSky y ADSB.lol no admiten consultas del navegador desde GitHub Pages; AvioADSB permite el complemento limitado descrito arriba; no se promete movimiento aéreo segundo a segundo ni precisión de rodaje comparable a Flightradar24.
+El servidor opcional consulta ADSB.lol en la zona observada cada cinco segundos, Renfe cada veinte segundos y AIS cada cinco segundos. Interpola entre muestras aéreas recientes, sin extrapolar instantáneas viejas. OpenSky mundial se comparte en caché quince minutos sin cuenta, o dos minutos con credenciales. El complemento regional conserva el resto del mundo. Sin servidor, OpenSky y ADSB.lol no admiten consultas del navegador desde GitHub Pages; AvioADSB permite el complemento limitado descrito arriba; no se promete movimiento aéreo segundo a segundo ni precisión de rodaje comparable a Flightradar24.
 
 CelesTrak se descarga como máximo cada dos horas y se reutiliza para calcular el movimiento orbital en el navegador. La época de los elementos aparece en cada ficha. Si una fuente falla, se conserva el dato anterior con su fecha y error.
 
@@ -75,7 +75,7 @@ El repositorio incluye `Dockerfile` y `render.yaml` para un servicio en el [plan
 4. Opcional para barcos: crea una clave gratuita en [AIS Stream](https://www.aisstream.io/) y guárdala como secreto `AISSTREAM_API_KEY` del servicio. No la pongas en archivos públicos ni chats.
 5. Opcional para la consulta aérea mundial: credenciales OAuth OpenSky como secretos del servidor. Los secretos del workflow no sustituyen el servidor de consultas frecuentes.
 
-AIS Stream exige intermediario y prohíbe conexiones directas desde el navegador. La conexión se implementa pero no puede activarse sin la clave del propietario. No se afirma que los barcos estén conectados mientras el estado sea `unconfigured`.
+AIS Stream exige intermediario y prohíbe conexiones directas desde el navegador. La conexión se implementa pero no puede activarse sin la clave del propietario. Ese estado se refiere únicamente a AIS Stream mundial; Fintraffic regional funciona directamente sin clave.
 
 ## Fuentes
 
@@ -88,7 +88,7 @@ AIS Stream exige intermediario y prohíbe conexiones directas desde el navegador
 | Trenes Finlandia | [Fintraffic / Digitraffic](https://www.digitraffic.fi/en/railway-traffic/) | CC BY 4.0, posiciones publicadas y tiempos previstos/reales. |
 | Trenes Norteamérica | [Amtraker](https://amtraker.com/), [documentación](https://api-v3.amtraker.com/docs) | Datos obtenidos de Amtraker bajo ODC-By 1.0, con atribución visible en el mapa. |
 | Rutas aéreas | [adsbdb](https://www.adsbdb.com/) | Aeropuertos asociados a indicativos disponibles; no determina el recorrido exacto ni acredita el vuelo de una fecha concreta. |
-| Navegación | [AIS Stream](https://www.aisstream.io/documentation) | Cuenta y clave gratuitas, servidor, cobertura parcial de mensajes AIS. |
+| Navegación | [Fintraffic/Digitraffic](https://www.digitraffic.fi/en/marine-traffic/) y [AIS Stream](https://www.aisstream.io/documentation) | Fintraffic: CC BY 4.0, AIS regional sin cuenta, clase A y sin pesqueros. AIS Stream: clave gratuita y servidor para cobertura mundial de receptores. |
 | Órbitas | [CelesTrak OMM](https://celestrak.org/NORAD/documentation/gp-data-formats.php) y [satellite.js](https://github.com/shashwatak/satellite-js) | SGP4; política de actualización de dos horas. OMM admite identificadores NORAD mayores que los de TLE. |
 | Satélite, relieve, océanos | [Esri términos](https://www.esri.com/en-us/legal/terms/web-site-service) | Servicios públicos con atribución, proyecto personal no comercial. Imágenes de distintas fechas; relieve cartográfico, no terreno geométrico 3D. |
 | Calles y ferrocarril | [OSM](https://operations.osmfoundation.org/policies/tiles/), [OpenRailwayMap](https://wiki.openstreetmap.org/wiki/OpenRailwayMap/API) | Atribución y políticas para aplicaciones pequeñas, sin descarga masiva de teselas. |

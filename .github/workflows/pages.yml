@@ -55,16 +55,20 @@ jobs:
         with:
           path: data/rail-cache
           key: rail-v4-${{ env.RAIL_DAY }}
+          restore-keys: rail-v4-
       - uses: actions/cache@v4
         with:
           path: data/rail-cache/at.json
           key: at-rail-v4-${{ env.RAIL_DAY }}
+          restore-keys: at-rail-v4-
       - uses: actions/cache@v4
         with:
           path: |
             data/aviation.json
             data/airspace.json
-          key: aviation-v4-${{ env.RAIL_DAY }}
+            data/airways.json
+            data/aviation-dfs.json
+          key: aviation-v5-${{ env.RAIL_DAY }}
       - name: Weather cache period
         run: echo "WEATHER_PERIOD=$(( $(date +%s) / 21600 ))" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
@@ -85,6 +89,8 @@ jobs:
           cp index.html favicon.svg _site/
           cp -r assets src vendor _site/
           cp data/*.json _site/data/
+          cp -r data/air-history _site/data/
+          cp data/air-history.json.gz _site/data/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

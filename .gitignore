@@ -15,3 +15,7 @@ data/aviation.json
 data/airspace.json
 data/weather.json
 data/air-tracks.json
+data/air-history/
+data/air-history.json.gz
+data/airways.json
+data/aviation-dfs.json

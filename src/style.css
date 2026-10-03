@@ -8,3 +8,4 @@
 @media(max-width:600px){.statusbar{right:10px;bottom:10px;font-size:9px;gap:8px}.cesium-widget-credits{max-width:45%;left:8px!important}.weather-legend{bottom:50px;right:8px;width:235px}.detail-open .weather-legend{display:none}.cesium-credit-textContainer{font-size:8px!important}}
 
 @media(max-width:600px){.statusbar #coordinates{display:inline}}
+.airport-types{margin:0 0 16px 12px;border-left:1px solid var(--line);padding-left:12px}.airport-types .check-row{font-size:11px;min-height:30px}.airport-types .small-note{margin:8px 0}

@@ -64,6 +64,40 @@ export const collectAirspace = () => cached('airspace.json', 86400000, async () 
   if (!data.features?.length) throw new Error('FAA: sin límites publicados');
   return { fetchedAt: Date.now(), source: 'FAA · regiones publicadas en Boundary Airspace; cobertura parcial', features: data.features };
 });
+export const collectAirways = () => cached('airways.json', 86400000, async () => {
+  const url = 'https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/ATS_Route/FeatureServer/0/query';
+  const features = [];
+  for (let offset = 0; offset < 100000; offset += 2000) {
+    const params = new URLSearchParams({ f: 'geojson', where: '1=1', outFields: 'OBJECTID,IDENT,LEVEL_', outSR: '4326', geometryPrecision: '4', maxAllowableOffset: '0.005', resultRecordCount: '2000', resultOffset: String(offset), orderByFields: 'OBJECTID' });
+    const data = await json(url + '?' + params);
+    if (!Array.isArray(data.features)) throw new Error('FAA: aerovías no disponibles');
+    features.push(...data.features.map(f => ({ ...f, properties: { name: f.properties.IDENT, level: f.properties.LEVEL_, source: 'FAA' } })));
+    if (!data.properties?.exceededTransferLimit) return { fetchedAt: Date.now(), source: 'FAA · ATS Route · uso público · cobertura parcial de EE. UU. y rutas publicadas del Pacífico', features };
+    if (!data.features.length) throw new Error('FAA: paginación incompleta');
+  }
+  throw new Error('FAA: aerovías truncadas');
+});
+export const collectDfs = () => cached('aviation-dfs.json', 604800000, async () => {
+  const base = 'https://haleconnect.com/ows/services/org.732.341f2791-919e-49de-8d86-3b18e040c430_wfs';
+  const read = async type => {
+    const features = [], ids = new Set();
+    for (let start = 0; start < 50000; start += 1000) {
+      const params = new URLSearchParams({ service: 'WFS', version: '2.0.0', request: 'GetFeature', typeNames: 'tn-a:' + type, count: '1000', startIndex: String(start), outputFormat: 'application/geo+json', srsName: 'urn:ogc:def:crs:OGC::CRS84' });
+      const data = await json(base + '?' + params);
+      if (!Array.isArray(data.features)) throw new Error('DFS: conjunto no disponible');
+      for (const f of data.features) { if (ids.has(f.id)) throw new Error('DFS: paginación repetida'); ids.add(f.id); features.push(f); }
+      if (data.features.length < 1000) return features;
+    }
+    throw new Error('DFS: conjunto truncado');
+  };
+  const [spaces, routes] = await Promise.all([read('AirspaceArea'), read('AirRouteLink')]);
+  const rounded = g => JSON.parse(JSON.stringify(g, (_, v) => typeof v === 'number' ? Math.round(v * 100000) / 100000 : v));
+  const name = p => p.geographicalName?.GeographicalName?.spelling?.SpellingOfName?.text;
+  const features = spaces.filter(f => /\/(FIR|UIR|CTR|CTA|TMA|ACC)$/.test(f.properties.AirspaceAreaType?.href)).map(f => ({ type: 'Feature', geometry: rounded(f.geometry), properties: { NAME: name(f.properties), TYPE_CODE: f.properties.AirspaceAreaType.href.split('/').at(-1), COUNTRY: 'GERMANY', source: 'DFS' } }));
+  const airways = routes.filter(f => !f.properties.fictitious && f.geometry).map(f => ({ type: 'Feature', geometry: rounded(f.geometry), properties: { name: name(f.properties), level: null, source: 'DFS' } }));
+  if (!features.length || !airways.length) throw new Error('DFS: geometrías vacías');
+  return { fetchedAt: Date.now(), source: '© DFS Deutsche Flugsicherung · INSPIRE · CC BY 4.0 · Alemania · actualización semestral', features, airways };
+});
 export const collectWeather = () => cached('weather.json', 21600000, async () => {
   // 2,376 locations × four collections/day = 9,504 location calls, below the free daily limit.
   // Four variables and one day remain within the provider's unweighted variable/time allowance.

@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'msedge', headless: true, args: ['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'msedge', headless: true, args: process.env.SOFTWARE_WEBGL === '1' ? ['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : ['--enable-webgl'] });
 const origin = process.env.TEST_ORIGIN || 'http://localhost:4174';
 await mkdir(new URL('../artifacts/', import.meta.url), { recursive: true });
 const errors = [], capture = (page, name) => page.screenshot({ path: fileURLToPath(new URL(`../artifacts/${name}.png`, import.meta.url)) });
@@ -37,7 +37,7 @@ try {
   await page.locator('#about-button').click();
   const about = await page.locator('#about').boundingBox();
   assert.ok(Math.abs(about.x + about.width / 2 - 720) < 2);
-  assert.ok((await page.locator('#about').textContent()).includes('Versión 0.4.0'));
+  assert.ok((await page.locator('#about').textContent()).includes('Versión 0.5.0'));
   assert.equal(await page.locator('#about a[href$="/Portfolio/"]').count(), 1);
   await capture(page, 'v04-about');
   await page.locator('#about-close').click();

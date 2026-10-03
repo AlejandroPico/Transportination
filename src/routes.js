@@ -1,13 +1,15 @@
-import { altitudeColor, distance, journeyProgress } from './motion.js?v=0.4';
+import { altitudeColor, distance, journeyProgress } from './motion.js?v=0.5';
+import { FLIGHT_RETENTION_MS, currentFlightSamples } from './flight-history.js?v=0.5';
 export class RouteView {
   constructor(C, viewer) { this.C = C; this.viewer = viewer; this.entities = []; this.lines = viewer.scene.primitives.add(new C.PolylineCollection()); this.history = new Map(); this.orbit = null; this.intensity = 1; }
   remember(items) {
-    const cutoff = Date.now() - 7200000;
+    const cutoff = Date.now() - FLIGHT_RETENTION_MS;
     for (const i of items) {
       if (i.kind === 'space' || !i.observedAt || i.positionMode === 'schedule' || Date.now() - i.observedAt > 120000) continue;
       const list = this.history.get(i.id) || [];
       if (i.observedAt > (list.at(-1)?.observedAt || 0)) list.push({ lon: i.lon, lat: i.lat, altitude: i.altitude, observedAt: i.observedAt, name: i.name, ground: i.state === 'En tierra' });
-      while (list.length && list[0].observedAt < cutoff) list.shift();
+      const itemCutoff = Date.now() - (i.kind === 'air' ? FLIGHT_RETENTION_MS : 7200000);
+      while (list.length && list[0].observedAt < itemCutoff) list.shift();
       this.history.set(i.id, list);
     }
     for (const [id, list] of this.history) if (!list.length || list.at(-1).observedAt < cutoff) this.history.delete(id);
@@ -16,7 +18,7 @@ export class RouteView {
   importHistory(packet) {
     for (const [id, samples] of Object.entries(packet.tracks || {})) {
       const points = [...(this.history.get(id) || []), ...samples];
-      const unique = new Map(points.filter(p => p.observedAt > Date.now() - 7200000).map(p => [p.observedAt, p]));
+      const unique = new Map(points.filter(p => p.observedAt > Date.now() - FLIGHT_RETENTION_MS).map(p => [p.observedAt, p]));
       this.history.set(id, [...unique.values()].sort((a,b) => a.observedAt-b.observedAt));
     }
   }
@@ -40,15 +42,15 @@ export class RouteView {
         this.line(g.points.slice(pivot, g.offsets.at(-1) + 1).map(p => ({ lon: p[0], lat: p[1] })), color, false, 3);
       } else this.line(stops, color, true, 2.5);
       if (stations && stationAlpha > 0) stops.forEach((s, i) => { if (s.commercial === false) return; this.entities.push(this.viewer.entities.add({ id: 'route-stop:' + item.id + ':' + i,
-        position: C.Cartesian3.fromDegrees(s.lon, s.lat, 45), point: { pixelSize: i === at ? 10 : 7, color: C.Color.fromCssColorString(i < at ? '#a6b5be' : color).withAlpha(stationAlpha), outlineColor: C.Color.BLACK.withAlpha(stationAlpha), outlineWidth: 2, disableDepthTestDistance: Infinity },
-        label: { text: s.name, font: '11px sans-serif', fillColor: C.Color.WHITE.withAlpha(stationAlpha), style: C.LabelStyle.FILL_AND_OUTLINE, outlineColor: C.Color.fromCssColorString('#0b1117').withAlpha(stationAlpha), outlineWidth: 3, pixelOffset: new C.Cartesian2(0, -18), distanceDisplayCondition: new C.DistanceDisplayCondition(0, 1500000), disableDepthTestDistance: Infinity }, properties: { station: s } })); });
+        position: C.Cartesian3.fromDegrees(s.lon, s.lat, 45), point: { pixelSize: i === at ? 10 : 7, color: C.Color.fromCssColorString(i < at ? '#a6b5be' : color).withAlpha(stationAlpha), outlineColor: C.Color.BLACK.withAlpha(stationAlpha), outlineWidth: 2, disableDepthTestDistance: 0 },
+        label: { text: s.name, font: '11px sans-serif', fillColor: C.Color.WHITE.withAlpha(stationAlpha), style: C.LabelStyle.FILL_AND_OUTLINE, outlineColor: C.Color.fromCssColorString('#0b1117').withAlpha(stationAlpha), outlineWidth: 3, pixelOffset: new C.Cartesian2(0, -18), distanceDisplayCondition: new C.DistanceDisplayCondition(0, 1500000), disableDepthTestDistance: 0 }, properties: { station: s } })); });
     }
     if (item.flightRoute) this.line([item.flightRoute.origin, item.flightRoute.destination], color, true, 2);
-    const list = (this.history.get(item.id) || []).filter(p => !p.name || p.name === item.name);
+    const list = item.kind === 'air' ? currentFlightSamples(this.history.get(item.id) || [], item) : (this.history.get(item.id) || []);
     for (let i = 1; i < list.length; i++) {
       const gap = list[i].observedAt - list[i - 1].observedAt, jump = distance(list[i-1],list[i]);
-      if (gap > 1200000 || jump > (item.kind === 'air' ? 650000 : 120000)) continue;
-      this.line([list[i-1],list[i]], item.kind === 'air' ? altitudeColor(list[i].ground ? 0 : list[i].altitude) : color, gap > 120000, 3);
+      if (gap <= 0 || gap > (item.kind === 'air' ? 7200000 : 1200000) || jump > (item.kind === 'air' ? Math.max(50000, gap * 0.5) : 120000)) continue;
+      this.line([list[i-1],list[i]], item.kind === 'air' ? altitudeColor(list[i].ground ? 0 : list[i].altitude) : color, item.kind !== 'air' && gap > 120000, 3);
     }
     if (item.kind === 'space' && this.orbit?.id === item.id) this.line(this.orbit.points, color, false, 2, true);
     this.viewer.scene.requestRender();

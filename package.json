@@ -1,6 +1,6 @@
 {
   "name": "transportination",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "type": "module",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "fflate": "0.8.2",
+    "paho-mqtt": "1.1.0",
     "satellite.js": "7.1.0",
     "ws": "8.22.0"
   }
